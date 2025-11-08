@@ -82,10 +82,12 @@ Be supportive and help reduce procrastination through momentum, not punishment.
 
         # Initialize Gemini model with function calling
         self.model = genai.GenerativeModel(
-            model_name='gemini-1.5-pro',  # or 'gemini-1.5-flash' for faster
-            tools=AVAILABLE_FUNCTIONS,
+            model_name='gemini-1.5-pro',
             system_instruction=self.SYSTEM_INSTRUCTION
         )
+
+        # Store tools separately for chat sessions
+        self.tools = AVAILABLE_FUNCTIONS
 
     async def process_message(
         self,
@@ -117,8 +119,11 @@ Be supportive and help reduce procrastination through momentum, not punishment.
         # Start chat session with history
         chat = self.model.start_chat(history=gemini_history)
 
-        # Send user message
-        response = chat.send_message(user_message)
+        # Send user message with tools enabled
+        response = chat.send_message(
+            user_message,
+            tools=self.tools
+        )
 
         function_results = []
 
@@ -145,15 +150,18 @@ Be supportive and help reduce procrastination through momentum, not punishment.
                     })
 
                     # Send function response back to model
-                    response = chat.send_message({
-                        "role": "function",
-                        "parts": [{
-                            "function_response": {
-                                "name": fn.name,
-                                "response": result
-                            }
-                        }]
-                    })
+                    response = chat.send_message(
+                        {
+                            "role": "function",
+                            "parts": [{
+                                "function_response": {
+                                    "name": fn.name,
+                                    "response": result
+                                }
+                            }]
+                        },
+                        tools=self.tools
+                    )
 
             if not has_function_call:
                 break
