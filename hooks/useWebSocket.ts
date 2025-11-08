@@ -91,7 +91,7 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
 
       ws.onerror = (event) => {
         console.error('WebSocket error:', event);
-        setError('Connection error');
+        setError('Cannot connect to AI backend. Make sure the backend server is running on port 8000.');
       };
 
       ws.onclose = (event) => {

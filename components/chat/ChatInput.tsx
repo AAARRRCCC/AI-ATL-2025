@@ -69,7 +69,7 @@ export function ChatInput({
             disabled={disabled}
             rows={1}
             maxLength={maxChars}
-            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all"
+            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all text-gray-900 placeholder:text-gray-400"
             style={{ minHeight: '48px', maxHeight: '120px' }}
           />
 
