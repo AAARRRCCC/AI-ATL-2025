@@ -247,6 +247,37 @@ app.include_router(assignments.router, prefix="/api/assignments")
 
 ## Troubleshooting
 
+### Windows: ModuleNotFoundError: No module named '_cffi_backend'
+
+This error occurs when the `cffi` package (required by `cryptography`) isn't installed correctly on Windows.
+
+**Solution 1: Reinstall dependencies (Recommended)**
+```bash
+# Deactivate and remove the virtual environment
+deactivate
+rmdir /s venv
+
+# Create a fresh virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Upgrade pip and install dependencies
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+```
+
+**Solution 2: Force reinstall cffi and cryptography**
+```bash
+# With virtual environment activated
+pip install --upgrade --force-reinstall cffi
+pip install --upgrade --force-reinstall cryptography
+```
+
+**Solution 3: Install Visual C++ Build Tools (if above solutions fail)**
+- Download and install [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+- Select "Desktop development with C++" during installation
+- Restart your terminal and retry installing dependencies
+
 ### MongoDB Connection Error
 
 - Check that your IP is whitelisted in MongoDB Atlas
