@@ -330,7 +330,7 @@ export default function PreferencesPage() {
           {/* Preferred Time Blocks */}
           <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
                 <Clock className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -380,7 +380,7 @@ export default function PreferencesPage() {
               />
               <button
                 onClick={addTimeBlock}
-                className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                className="px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
               >
                 <Plus className="w-4 h-4" />
                 Add
