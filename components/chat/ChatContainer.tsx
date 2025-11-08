@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertCircle, Wifi, WifiOff, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -15,6 +16,7 @@ export function ChatContainer({ userId }: ChatContainerProps) {
   const { messages, sendMessage, isConnected, isTyping, error } = useWebSocket(userId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isClearing, setIsClearing] = useState(false);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -22,6 +24,44 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping]);
+
+  const handleClearChat = async () => {
+    if (!confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
+      return;
+    }
+
+    setIsClearing(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please log in first');
+        return;
+      }
+
+      const response = await fetch('/api/chat/clear', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear chat');
+      }
+
+      const data = await response.json();
+      toast.success(`Cleared ${data.deleted_count} messages`);
+
+      // Reload the page to refresh the chat
+      window.location.reload();
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+      toast.error('Failed to clear chat history');
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
@@ -32,19 +72,35 @@ export function ChatContainer({ userId }: ChatContainerProps) {
           <p className="text-sm text-gray-600 dark:text-gray-400">Chat to create and schedule assignments</p>
         </div>
 
-        {/* Connection Status */}
-        <div className="flex items-center gap-2">
-          {isConnected ? (
-            <>
-              <Wifi className="h-4 w-4 text-green-500 dark:text-green-400" />
-              <span className="text-xs text-green-600 dark:text-green-400 font-medium">Connected</span>
-            </>
-          ) : (
-            <>
-              <WifiOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Connecting...</span>
-            </>
+        {/* Connection Status & Actions */}
+        <div className="flex items-center gap-3">
+          {/* Clear Chat Button */}
+          {messages.length > 0 && (
+            <button
+              onClick={handleClearChat}
+              disabled={isClearing}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
+              title="Clear chat history"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear
+            </button>
           )}
+
+          {/* Connection Status */}
+          <div className="flex items-center gap-2">
+            {isConnected ? (
+              <>
+                <Wifi className="h-4 w-4 text-green-500 dark:text-green-400" />
+                <span className="text-xs text-green-600 dark:text-green-400 font-medium">Connected</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <span className="text-xs text-gray-500 dark:text-gray-400">Connecting...</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
