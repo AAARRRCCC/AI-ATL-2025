@@ -10,7 +10,7 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from .functions import AVAILABLE_FUNCTIONS
+from .functions import tools
 
 
 class ChatHandler:
@@ -83,7 +83,7 @@ Be supportive and help reduce procrastination through momentum, not punishment.
         # Initialize Gemini model with function calling
         self.model = genai.GenerativeModel(
             model_name='gemini-1.5-pro',
-            tools=AVAILABLE_FUNCTIONS,
+            tools=tools,
             system_instruction=self.SYSTEM_INSTRUCTION
         )
 
