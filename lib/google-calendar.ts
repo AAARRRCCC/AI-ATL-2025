@@ -173,8 +173,18 @@ export async function createStudyEvent(
   endTime: Date,
   taskId?: string
 ) {
+  console.log("\n" + "=".repeat(60));
+  console.log("DEBUG: createStudyEvent called");
+  console.log("DEBUG: User ID:", userId);
+  console.log("DEBUG: Title:", title);
+  console.log("DEBUG: Start time:", startTime.toISOString());
+  console.log("DEBUG: End time:", endTime.toISOString());
+  console.log("DEBUG: Task ID:", taskId || "none");
+
   try {
+    console.log("DEBUG: Getting calendar client...");
     const calendar = await getCalendarClient(userId);
+    console.log("DEBUG: Calendar client obtained successfully");
 
     const event = {
       summary: `[Study Autopilot] ${title}`,
@@ -194,14 +204,32 @@ export async function createStudyEvent(
       colorId: "9", // Blue color for study sessions
     };
 
+    console.log("DEBUG: Event object created:", JSON.stringify(event, null, 2));
+    console.log("DEBUG: Calling Google Calendar API events.insert...");
+
     const response = await calendar.events.insert({
       calendarId: "primary",
       requestBody: event,
     });
 
+    console.log("DEBUG: Google Calendar API response status:", response.status);
+    console.log("DEBUG: Created event ID:", response.data.id);
+    console.log("DEBUG: Created event link:", response.data.htmlLink);
+    console.log("=".repeat(60) + "\n");
+
     return response.data;
   } catch (error: any) {
-    console.error("Error creating calendar event:", error.message);
+    console.error("ERROR: Failed to create calendar event");
+    console.error("ERROR: Type:", error.constructor?.name);
+    console.error("ERROR: Message:", error.message);
+    if (error.response) {
+      console.error("ERROR: Google API response status:", error.response.status);
+      console.error("ERROR: Google API response data:", JSON.stringify(error.response.data, null, 2));
+    }
+    if (error.stack) {
+      console.error("ERROR: Stack trace:", error.stack);
+    }
+    console.log("=".repeat(60) + "\n");
     throw error;
   }
 }
