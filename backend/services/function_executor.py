@@ -242,9 +242,7 @@ class FunctionExecutor:
         end_date: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Schedule tasks for an assignment.
-
-        This is a placeholder - full implementation requires Google Calendar API.
+        Schedule tasks for an assignment using user preferences.
 
         Args:
             user_id: User ID
@@ -258,30 +256,123 @@ class FunctionExecutor:
         try:
             assignment = await self.db.get_assignment(assignment_id)
             tasks = await self.db.get_assignment_tasks(assignment_id)
+            preferences = await self.db.get_user_preferences(user_id)
 
             if not assignment:
                 return {"success": False, "error": "Assignment not found"}
 
-            # Create a schedule for the tasks
-            scheduled_tasks = []
+            # Extract user preferences or use defaults
+            study_settings = preferences.get("studySettings", {}) if preferences else {}
+            days_available = study_settings.get("daysAvailable", [1, 2, 3, 4, 5])  # Mon-Fri
+            preferred_times = study_settings.get("preferredStudyTimes", [])
+            productivity_pattern = study_settings.get("productivityPattern", "midday")
+            deadline_buffer = study_settings.get("assignmentDeadlineBuffer", 2)
+            subject_strengths = study_settings.get("subjectStrengths", [])
+            default_work_duration = study_settings.get("defaultWorkDuration", 50)
 
+            # Get assignment subject and check if it needs more time
+            assignment_subject = assignment.get("subject", "")
+            needs_more_time = False
+            for subject in subject_strengths:
+                if subject.get("subject", "").lower() == assignment_subject.lower():
+                    needs_more_time = subject.get("needsMoreTime", False)
+                    break
+
+            # Define time ranges based on productivity pattern
+            time_ranges = {
+                "morning": {"start": "08:00", "end": "12:00"},
+                "midday": {"start": "12:00", "end": "17:00"},
+                "evening": {"start": "17:00", "end": "21:00"}
+            }
+
+            # Use preferred times if available, otherwise use productivity pattern
+            if preferred_times:
+                available_time_blocks = preferred_times
+            else:
+                pattern_range = time_ranges.get(productivity_pattern, time_ranges["midday"])
+                available_time_blocks = [pattern_range]
+
+            # Calculate start date (today or provided)
             start = datetime.now() if not start_date else parser.parse(start_date)
-            current_time = start
+
+            # Calculate end date (assignment due date minus buffer)
+            if "due_date" in assignment:
+                due_date = assignment["due_date"]
+                if isinstance(due_date, str):
+                    due_date = parser.parse(due_date)
+                # Apply deadline buffer
+                target_completion = due_date - timedelta(days=deadline_buffer)
+            else:
+                target_completion = start + timedelta(days=14)  # Default 2 weeks
+
+            # Schedule tasks
+            scheduled_tasks = []
+            current_date = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
             for task in tasks:
                 duration_minutes = task["estimated_duration"]
 
-                scheduled_tasks.append({
-                    "task_id": str(task["_id"]),
-                    "title": task["title"],
-                    "scheduled_start": current_time.isoformat(),
-                    "scheduled_end": (current_time + timedelta(minutes=duration_minutes)).isoformat(),
-                    "duration_minutes": duration_minutes,
-                    "description": task.get("description", "")
-                })
+                # Apply time multiplier if subject needs more time
+                if needs_more_time:
+                    duration_minutes = int(duration_minutes * 1.25)  # 25% more time
 
-                # Move to next day for next task (simplified scheduling)
-                current_time += timedelta(days=1)
+                # Find next available slot
+                scheduled = False
+                attempts = 0
+                max_attempts = 30  # Prevent infinite loop
+
+                while not scheduled and attempts < max_attempts and current_date <= target_completion:
+                    # Check if current day is available
+                    day_of_week = current_date.weekday()  # Monday=0, Sunday=6
+
+                    # Convert to 0=Sunday format if needed
+                    day_num = (day_of_week + 1) % 7
+
+                    if day_num in days_available:
+                        # Try to schedule in the first available time block
+                        for time_block in available_time_blocks:
+                            start_time_str = time_block["start"]
+                            hour, minute = map(int, start_time_str.split(":"))
+
+                            task_start = current_date.replace(hour=hour, minute=minute)
+                            task_end = task_start + timedelta(minutes=duration_minutes)
+
+                            # Make sure we don't exceed the time block end
+                            block_end_str = time_block["end"]
+                            block_hour, block_minute = map(int, block_end_str.split(":"))
+                            block_end = current_date.replace(hour=block_hour, minute=block_minute)
+
+                            if task_end <= block_end:
+                                scheduled_tasks.append({
+                                    "task_id": str(task["_id"]),
+                                    "title": task["title"],
+                                    "scheduled_start": task_start.isoformat(),
+                                    "scheduled_end": task_end.isoformat(),
+                                    "duration_minutes": duration_minutes,
+                                    "description": task.get("description", "")
+                                })
+                                scheduled = True
+                                # Move to next available time or day
+                                current_date = task_end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                                break
+
+                    if not scheduled:
+                        current_date += timedelta(days=1)
+                        attempts += 1
+
+                if not scheduled:
+                    # Fallback: schedule anyway with warning
+                    task_start = current_date.replace(hour=10, minute=0)
+                    task_end = task_start + timedelta(minutes=duration_minutes)
+                    scheduled_tasks.append({
+                        "task_id": str(task["_id"]),
+                        "title": task["title"],
+                        "scheduled_start": task_start.isoformat(),
+                        "scheduled_end": task_end.isoformat(),
+                        "duration_minutes": duration_minutes,
+                        "description": task.get("description", "")
+                    })
+                    current_date += timedelta(days=1)
 
             # Call Next.js API to create Google Calendar events
             calendar_result = None
