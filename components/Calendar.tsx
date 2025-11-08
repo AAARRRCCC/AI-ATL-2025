@@ -55,6 +55,13 @@ export function Calendar({
   const [view, setView] = useState<View | "agenda">("week");
   const [date, setDate] = useState(new Date());
 
+  // When switching to day view, default to today
+  useEffect(() => {
+    if (view === "day") {
+      setDate(new Date());
+    }
+  }, [view]);
+
   const handleEventDrop = useCallback(
     ({ event, start, end }: any) => {
       if (onEventMove) {
@@ -183,6 +190,79 @@ export function Calendar({
   if (view === "agenda") {
     return (
       <div className="h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4">
+        <style jsx global>{`
+          /* Toolbar - Modern button styling */
+          .rbc-toolbar {
+            padding: 20px 0;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+          }
+
+          .rbc-toolbar button {
+            padding: 10px 18px;
+            border: 1px solid #e5e7eb;
+            background-color: white;
+            color: #374151;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+          }
+
+          .dark .rbc-toolbar button {
+            border-color: #374151;
+            background-color: #1f2937;
+            color: #d1d5db;
+          }
+
+          .rbc-toolbar button:hover {
+            background-color: #f9fafb;
+            border-color: #d1d5db;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+
+          .dark .rbc-toolbar button:hover {
+            background-color: #374151;
+            border-color: #4b5563;
+          }
+
+          .rbc-toolbar button.rbc-active {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+          }
+
+          .dark .rbc-toolbar button.rbc-active {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+          }
+
+          .rbc-toolbar-label {
+            font-weight: 700;
+            font-size: 18px;
+            color: #111827;
+            flex-grow: 1;
+            text-align: center;
+            letter-spacing: -0.5px;
+            min-width: 200px;
+          }
+
+          .dark .rbc-toolbar-label {
+            color: #f9fafb;
+          }
+
+          @media (min-width: 640px) {
+            .rbc-toolbar-label {
+              font-size: 20px;
+            }
+          }
+        `}</style>
         <CustomToolbar label={format(date, "MMMM yyyy")} onNavigate={() => {}} onView={() => {}} />
         <AgendaView events={events} onEventClick={onEventClick} />
       </div>
@@ -219,10 +299,20 @@ export function Calendar({
         /* Remove gap between headers and time content in week/day view */
         .rbc-time-header {
           margin-bottom: 0 !important;
+          overflow: hidden !important;
         }
 
         .rbc-time-header-content {
           border-left: none;
+        }
+
+        /* Remove the gutter row that creates the gap */
+        .rbc-time-header-gutter {
+          display: none !important;
+        }
+
+        .rbc-allday-cell {
+          display: none !important;
         }
 
         /* Day view specific - minimize the day header since we show date in toolbar */
