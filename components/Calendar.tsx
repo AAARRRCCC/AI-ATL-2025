@@ -272,26 +272,44 @@ export function Calendar({
 
         /* Header Styling - Clean, minimal headers */
         .rbc-header {
-          padding: 16px 8px;
+          padding: 12px 8px;
           font-weight: 600;
-          color: #6b7280;
-          font-size: 12px;
-          letter-spacing: 0.3px;
+          color: #9ca3af;
+          font-size: 11px;
+          letter-spacing: 0.5px;
           text-transform: uppercase;
-          border-bottom: 1px solid #f3f4f6;
-          background: white;
+          border-bottom: none;
+          background: transparent;
+          text-align: center;
         }
 
         .dark .rbc-header {
-          color: #9ca3af;
-          border-bottom-color: #374151;
-          background: #1f2937;
+          color: #6b7280;
+        }
+
+        /* Time-based view headers - show day and date */
+        .rbc-time-view .rbc-header {
+          padding: 8px 4px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .rbc-time-view .rbc-header span {
+          display: block;
+          text-align: center;
         }
 
         /* Remove gap between headers and time content in week/day view */
         .rbc-time-header {
           margin-bottom: 0 !important;
           overflow: visible !important;
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        .dark .rbc-time-header {
+          border-bottom-color: #2a2e33;
         }
 
         .rbc-time-header-content {
@@ -307,18 +325,36 @@ export function Calendar({
           display: none !important;
         }
 
-        /* Ensure headers align with columns */
+        /* Fix header alignment - remove borders between headers */
         .rbc-header + .rbc-header {
           border-left: none;
         }
 
-        /* Today highlighting - Subtle like Notion */
+        .rbc-time-header-content > .rbc-row {
+          border: none;
+        }
+
+        /* Today highlighting - Very subtle like Notion */
         .rbc-today {
-          background-color: #fafbfc;
+          background-color: #f8fafc;
         }
 
         .dark .rbc-today {
-          background-color: #1a1d21;
+          background-color: #1e293b;
+        }
+
+        /* Today header highlighting */
+        .rbc-time-view .rbc-today {
+          background-color: transparent;
+        }
+
+        .rbc-time-view .rbc-header.rbc-today {
+          color: #3b82f6;
+          font-weight: 700;
+        }
+
+        .dark .rbc-time-view .rbc-header.rbc-today {
+          color: #60a5fa;
         }
 
         /* Off-range dates - Very subtle */
@@ -354,9 +390,10 @@ export function Calendar({
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
         }
 
-        /* Time grid - Very minimal like Notion */
+        /* Time grid - Extremely minimal like Notion */
         .rbc-day-slot .rbc-time-slot {
-          border-top: 1px solid #f5f5f5;
+          border-top: 1px solid #fafafa;
+          min-height: 40px;
         }
 
         .dark .rbc-day-slot .rbc-time-slot {
@@ -371,9 +408,9 @@ export function Calendar({
           border-left: none;
         }
 
-        /* Very subtle dividers between days */
+        /* Very subtle dividers between days - barely visible */
         .rbc-time-column {
-          border-left: 1px solid #f5f5f5;
+          border-left: 1px solid #fafafa;
         }
 
         .dark .rbc-time-column {
@@ -384,14 +421,34 @@ export function Calendar({
           border-left: none;
         }
 
-        /* Time labels - Subtle and minimal */
+        /* Add subtle right border to time gutter */
+        .rbc-time-gutter {
+          border-right: 1px solid #fafafa !important;
+        }
+
+        .dark .rbc-time-gutter {
+          border-right-color: #2a2e33 !important;
+        }
+
+        /* Time labels - Ultra subtle and minimal */
         .rbc-time-slot {
-          color: #a0a0a0;
-          font-size: 11px;
+          color: #d1d5db;
+          font-size: 10px;
           font-weight: 400;
         }
 
         .dark .rbc-time-slot {
+          color: #4b5563;
+        }
+
+        /* Time slot in gutter */
+        .rbc-label {
+          color: #9ca3af;
+          font-size: 10px;
+          padding-right: 8px;
+        }
+
+        .dark .rbc-label {
           color: #6b7280;
         }
 
@@ -485,33 +542,48 @@ export function Calendar({
           }
         }
 
-        /* Month view specific - Clean Notion style */
+        /* Month view specific - Ultra clean Notion style */
         .rbc-month-view {
-          border: 1px solid #f0f0f0;
-          border-radius: 8px;
-          overflow: hidden;
+          border: none;
+          border-radius: 0;
+          overflow: visible;
           box-shadow: none;
         }
 
         .dark .rbc-month-view {
-          border-color: #2a2e33;
+          border: none;
         }
 
         .rbc-month-row {
-          border-top: 1px solid #f5f5f5;
+          border-top: 1px solid #fafafa;
+          min-height: 80px;
         }
 
         .dark .rbc-month-row {
           border-top-color: #2a2e33;
         }
 
-        /* Minimal cell borders in month view */
+        .rbc-month-row:first-child {
+          border-top: none;
+        }
+
+        /* Ultra minimal cell borders in month view */
         .rbc-day-bg + .rbc-day-bg {
-          border-left: 1px solid #f5f5f5;
+          border-left: 1px solid #fafafa;
         }
 
         .dark .rbc-day-bg + .rbc-day-bg {
           border-left-color: #2a2e33;
+        }
+
+        /* Month view header row */
+        .rbc-month-view .rbc-header {
+          border-bottom: 1px solid #f0f0f0;
+          padding: 12px 8px;
+        }
+
+        .dark .rbc-month-view .rbc-header {
+          border-bottom-color: #2a2e33;
         }
 
         .rbc-day-bg {
@@ -526,27 +598,26 @@ export function Calendar({
           background-color: #1a1d21;
         }
 
-        /* Week/Day view specific - Clean and minimal */
+        /* Week/Day view specific - Ultra clean like Notion */
         .rbc-time-view {
-          border: 1px solid #f0f0f0;
-          border-radius: 8px;
-          overflow: hidden;
+          border: none;
+          border-radius: 0;
+          overflow: visible;
           box-shadow: none;
-          background: white;
+          background: transparent;
         }
 
         .dark .rbc-time-view {
-          border-color: #2a2e33;
+          background: transparent;
+        }
+
+        /* Add subtle container background */
+        .rbc-time-content {
+          background: white;
+        }
+
+        .dark .rbc-time-content {
           background: #1f2937;
-        }
-
-        /* Remove inner borders from time gutter */
-        .rbc-time-slot.rbc-time-gutter {
-          border-right: 1px solid #f5f5f5;
-        }
-
-        .dark .rbc-time-slot.rbc-time-gutter {
-          border-right-color: #2a2e33;
         }
 
         /* Selection highlight - Simple and clean */
@@ -560,41 +631,64 @@ export function Calendar({
           background-color: rgba(59, 130, 246, 0.2);
         }
 
-        /* Date cell styling - Minimal */
+        /* Date cell styling - Ultra minimal */
         .rbc-date-cell {
-          padding: 6px 8px;
+          padding: 8px;
           text-align: right;
         }
 
         .rbc-date-cell > a {
-          color: #737373;
+          color: #9ca3af;
           font-weight: 500;
-          font-size: 13px;
+          font-size: 12px;
           transition: color 0.15s ease;
+          display: inline-block;
+          padding: 4px 8px;
+          border-radius: 4px;
         }
 
         .dark .rbc-date-cell > a {
-          color: #a3a3a3;
+          color: #6b7280;
+        }
+
+        .rbc-date-cell > a:hover {
+          background-color: #f8fafc;
+          color: #3b82f6;
+        }
+
+        .dark .rbc-date-cell > a:hover {
+          background-color: #1e293b;
+          color: #60a5fa;
         }
 
         .rbc-now .rbc-date-cell > a {
-          color: #3b82f6;
+          color: white;
+          background-color: #3b82f6;
           font-weight: 600;
         }
 
         .dark .rbc-now .rbc-date-cell > a {
-          color: #60a5fa;
+          background-color: #2563eb;
         }
 
-        /* Remove row borders for cleaner look */
+        /* Remove all heavy borders for ultra clean look */
         .rbc-day-bg,
         .rbc-month-row {
-          border-color: #f5f5f5 !important;
+          border-color: #fafafa !important;
         }
 
         .dark .rbc-day-bg,
         .dark .rbc-month-row {
           border-color: #2a2e33 !important;
+        }
+
+        /* Increase spacing and breathing room */
+        .rbc-row {
+          min-height: 0;
+        }
+
+        .rbc-row-segment {
+          padding: 2px 4px;
         }
       `}</style>
       <DndProvider backend={HTML5Backend}>
