@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>Study Autopilot Chat Test</h1>
+<div id="messages"></div>
+<input id="input" type="text" placeholder="Type a message..." style="width: 400px">
+<button onclick="send()">Send</button>
+
+<script>
+const ws = new WebSocket('ws://localhost:8000/ws/chat');
+const messages = document.getElementById('messages');
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ user_id: "test_user_123" }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  messages.innerHTML += `<p><strong>AI:</strong> ${data.message || JSON.stringify(data)}</p>`;
+};
+
+function send() {
+  const input = document.getElementById('input');
+  ws.send(JSON.stringify({ message: input.value }));
+  messages.innerHTML += `<p><strong>You:</strong> ${input.value}</p>`;
+  input.value = '';
+}
+</script>
+</body>
+</html>
