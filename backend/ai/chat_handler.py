@@ -82,7 +82,7 @@ Be supportive and help reduce procrastination through momentum, not punishment.
 
         # Initialize Gemini model with function calling
         self.model = genai.GenerativeModel(
-            model_name='gemini-1.5-pro',
+            model_name='gemini-1.5-flash-latest',  # Use latest available model
             tools=tools,
             system_instruction=self.SYSTEM_INSTRUCTION
         )
