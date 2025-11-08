@@ -139,28 +139,51 @@ export function Calendar({
     };
   };
 
-  // If agenda view is selected, render custom agenda
+  // Custom toolbar component
+  const CustomToolbar = ({ label, onNavigate, onView: onViewChange }: any) => {
+    // Format label based on current view - show full date for day view
+    const formatLabel = () => {
+      if (view === "day") {
+        return format(date, "EEEE, MMMM d, yyyy");
+      }
+      return label;
+    };
+
+    return (
+      <div className="rbc-toolbar">
+        <span className="rbc-btn-group">
+          <button type="button" onClick={() => onNavigate("TODAY")}>
+            Today
+          </button>
+          <button type="button" onClick={() => onNavigate("PREV")}>
+            Back
+          </button>
+          <button type="button" onClick={() => onNavigate("NEXT")}>
+            Next
+          </button>
+        </span>
+        <span className="rbc-toolbar-label">{formatLabel()}</span>
+        <span className="rbc-btn-group">
+          {["month", "week", "day", "agenda"].map((v) => (
+            <button
+              key={v}
+              type="button"
+              className={view === v ? "rbc-active" : ""}
+              onClick={() => setView(v as View | "agenda")}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
+            </button>
+          ))}
+        </span>
+      </div>
+    );
+  };
+
+  // If agenda view is selected, render custom agenda with integrated toolbar
   if (view === "agenda") {
     return (
       <div className="h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4">
-        {/* Custom view selector for agenda */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex gap-2">
-            {["month", "week", "day", "agenda"].map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v as View | "agenda")}
-                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                  view === v
-                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
-              >
-                {v.charAt(0).toUpperCase() + v.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
+        <CustomToolbar label={format(date, "MMMM yyyy")} onNavigate={() => {}} onView={() => {}} />
         <AgendaView events={events} onEventClick={onEventClick} />
       </div>
     );
@@ -177,13 +200,13 @@ export function Calendar({
 
         /* Header Styling - More modern, sleek headers */
         .rbc-header {
-          padding: 16px 8px;
+          padding: 12px 8px;
           font-weight: 700;
           color: #1f2937;
           font-size: 13px;
           letter-spacing: 0.5px;
           text-transform: uppercase;
-          border-bottom: 3px solid #e5e7eb;
+          border-bottom: 2px solid #e5e7eb;
           background: linear-gradient(to bottom, #fafafa, #f9fafb);
         }
 
@@ -191,6 +214,30 @@ export function Calendar({
           color: #e5e7eb;
           border-bottom-color: #374151;
           background: linear-gradient(to bottom, #1f2937, #111827);
+        }
+
+        /* Remove gap between headers and time content in week/day view */
+        .rbc-time-header {
+          margin-bottom: 0 !important;
+        }
+
+        .rbc-time-header-content {
+          border-left: none;
+        }
+
+        /* Day view specific - minimize the day header since we show date in toolbar */
+        .rbc-time-view.rbc-day-view .rbc-header {
+          padding: 6px 8px;
+          font-size: 11px;
+          font-weight: 500;
+          background: transparent;
+          border-bottom: 1px solid #e5e7eb;
+          color: #9ca3af;
+        }
+
+        .dark .rbc-time-view.rbc-day-view .rbc-header {
+          border-bottom-color: #374151;
+          color: #6b7280;
         }
 
         /* Today highlighting - More prominent */
@@ -249,7 +296,7 @@ export function Calendar({
         }
 
         .rbc-time-content {
-          border-top: 1px solid #e5e7eb;
+          border-top: none;
         }
 
         .dark .rbc-time-content {
@@ -358,15 +405,23 @@ export function Calendar({
 
         .rbc-toolbar-label {
           font-weight: 700;
-          font-size: 20px;
+          font-size: 18px;
           color: #111827;
           flex-grow: 1;
           text-align: center;
           letter-spacing: -0.5px;
+          min-width: 200px;
         }
 
         .dark .rbc-toolbar-label {
           color: #f9fafb;
+        }
+
+        /* Make label larger for day view when showing full date */
+        @media (min-width: 640px) {
+          .rbc-toolbar-label {
+            font-size: 20px;
+          }
         }
 
         /* Month view specific */
@@ -501,15 +556,6 @@ export function Calendar({
         }
       `}</style>
       <DndProvider backend={HTML5Backend}>
-        {/* Custom Agenda button */}
-        <div className="mb-4">
-          <button
-            onClick={() => setView("agenda")}
-            className="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
-          >
-            📋 Agenda View
-          </button>
-        </div>
         <DragAndDropCalendar
           localizer={localizer}
           events={events}
@@ -520,6 +566,9 @@ export function Calendar({
           onView={(v) => setView(v as View | "agenda")}
           views={["month", "week", "day"]}
           date={date}
+          components={{
+            toolbar: CustomToolbar,
+          }}
           onNavigate={setDate}
           onEventDrop={handleEventDrop}
           onEventResize={handleEventResize}
