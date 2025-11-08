@@ -10,9 +10,10 @@ import { TypingIndicator } from './TypingIndicator';
 
 interface ChatContainerProps {
   userId: string | null;
+  onDataChange?: () => void;
 }
 
-export function ChatContainer({ userId }: ChatContainerProps) {
+export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
   const { messages, sendMessage, isConnected, isTyping, error, isInitializing } = useWebSocket(userId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -24,6 +25,22 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping]);
+
+  // Trigger data refresh when new messages with function calls are received
+  useEffect(() => {
+    if (messages.length > 0 && onDataChange) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'model' && lastMessage.function_calls && lastMessage.function_calls.length > 0) {
+        // Check if any function calls were for creating/updating assignments or tasks
+        const hasDataChanges = lastMessage.function_calls.some(
+          fc => ['create_assignment', 'break_down_assignment', 'schedule_tasks'].includes(fc.name)
+        );
+        if (hasDataChanges) {
+          onDataChange();
+        }
+      }
+    }
+  }, [messages, onDataChange]);
 
   const handleDebugMongoDB = async () => {
     const token = localStorage.getItem('token');
@@ -113,6 +130,11 @@ export function ChatContainer({ userId }: ChatContainerProps) {
         `${dbData.deleted.messages} messages, and ${calendarData.deleted_count} calendar events`
       );
 
+      // Trigger data refresh
+      if (onDataChange) {
+        onDataChange();
+      }
+
       // Reload the page to refresh everything
       setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
@@ -156,20 +178,22 @@ export function ChatContainer({ userId }: ChatContainerProps) {
             </button>
           )}
 
-          {/* Connection Status */}
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <>
-                <Wifi className="h-4 w-4 text-green-500 dark:text-green-400" />
-                <span className="text-xs text-green-600 dark:text-green-400 font-medium">Connected</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                <span className="text-xs text-gray-500 dark:text-gray-400">Connecting...</span>
-              </>
-            )}
-          </div>
+          {/* Connection Status - Hide during initial setup */}
+          {!isInitializing && (
+            <div className="flex items-center gap-2">
+              {isConnected ? (
+                <>
+                  <Wifi className="h-4 w-4 text-green-500 dark:text-green-400" />
+                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">Connected</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Connecting...</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

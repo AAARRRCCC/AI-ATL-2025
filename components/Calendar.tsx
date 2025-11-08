@@ -139,7 +139,171 @@ export function Calendar({
   };
 
   return (
-    <div className="h-full w-full bg-white rounded-lg shadow-lg p-4">
+    <div className="h-full w-full bg-white dark:bg-gray-800 rounded-lg p-4">
+      <style jsx global>{`
+        /* Custom calendar styles */
+        .rbc-calendar {
+          font-family: inherit;
+        }
+
+        .rbc-header {
+          padding: 12px 6px;
+          font-weight: 600;
+          color: #374151;
+          font-size: 14px;
+          border-bottom: 2px solid #e5e7eb;
+        }
+
+        .dark .rbc-header {
+          color: #d1d5db;
+          border-bottom-color: #374151;
+        }
+
+        .rbc-today {
+          background-color: #eff6ff;
+        }
+
+        .dark .rbc-today {
+          background-color: #1e3a8a;
+        }
+
+        .rbc-off-range-bg {
+          background-color: #f9fafb;
+        }
+
+        .dark .rbc-off-range-bg {
+          background-color: #111827;
+        }
+
+        .rbc-event {
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 13px;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .rbc-event:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .rbc-event.rbc-selected {
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+
+        .rbc-day-slot .rbc-time-slot {
+          border-top: 1px solid #f3f4f6;
+        }
+
+        .dark .rbc-day-slot .rbc-time-slot {
+          border-top-color: #374151;
+        }
+
+        .rbc-time-content {
+          border-top: 2px solid #e5e7eb;
+        }
+
+        .dark .rbc-time-content {
+          border-top-color: #374151;
+        }
+
+        .rbc-time-header-content {
+          border-left: 1px solid #e5e7eb;
+        }
+
+        .dark .rbc-time-header-content {
+          border-left-color: #374151;
+        }
+
+        .rbc-time-slot {
+          color: #6b7280;
+        }
+
+        .dark .rbc-time-slot {
+          color: #9ca3af;
+        }
+
+        .rbc-current-time-indicator {
+          background-color: #ef4444;
+          height: 2px;
+        }
+
+        .rbc-toolbar {
+          padding: 16px 0;
+          margin-bottom: 16px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .rbc-toolbar button {
+          padding: 8px 16px;
+          border: 1px solid #e5e7eb;
+          background-color: white;
+          color: #374151;
+          border-radius: 8px;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .dark .rbc-toolbar button {
+          border-color: #374151;
+          background-color: #1f2937;
+          color: #d1d5db;
+        }
+
+        .rbc-toolbar button:hover {
+          background-color: #f3f4f6;
+          border-color: #d1d5db;
+        }
+
+        .dark .rbc-toolbar button:hover {
+          background-color: #374151;
+          border-color: #4b5563;
+        }
+
+        .rbc-toolbar button.rbc-active {
+          background-color: #3b82f6;
+          color: white;
+          border-color: #3b82f6;
+        }
+
+        .dark .rbc-toolbar button.rbc-active {
+          background-color: #2563eb;
+          border-color: #2563eb;
+        }
+
+        .rbc-toolbar-label {
+          font-weight: 600;
+          font-size: 18px;
+          color: #111827;
+          flex-grow: 1;
+          text-align: center;
+        }
+
+        .dark .rbc-toolbar-label {
+          color: #f9fafb;
+        }
+
+        /* Smooth animations */
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .rbc-event {
+          animation: fadeIn 0.3s ease;
+        }
+      `}</style>
       <DndProvider backend={HTML5Backend}>
         <DragAndDropCalendar
           localizer={localizer}

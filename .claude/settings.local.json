@@ -19,7 +19,14 @@
       "Bash(node:*)",
       "Bash(git update-index:*)",
       "Bash(del setup.sh)",
-      "Bash(python main.py:*)"
+      "Bash(python main.py:*)",
+      "Bash(NUL)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx next:*)",
+      "Bash(timeout 30 npm run dev)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

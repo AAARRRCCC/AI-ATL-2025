@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, Calendar, Brain, TrendingUp } from "lucide-react";
+import Link from "next/link";
 
 export default function HeroSection() {
   return (
@@ -55,12 +56,12 @@ export default function HeroSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
         >
-          <a
+          <Link
             href="/auth"
             className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-200 inline-block text-center"
           >
             Get Started Free
-          </a>
+          </Link>
         </motion.div>
 
         {/* Feature Icons */}
@@ -70,7 +71,7 @@ export default function HeroSection() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto"
         >
-          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
             <div className="p-3 bg-blue-100 dark:bg-blue-900/50 rounded-full">
               <Brain className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
@@ -82,7 +83,7 @@ export default function HeroSection() {
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
             <div className="p-3 bg-purple-100 dark:bg-purple-900/50 rounded-full">
               <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
@@ -94,7 +95,7 @@ export default function HeroSection() {
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
             <div className="p-3 bg-pink-100 dark:bg-pink-900/50 rounded-full">
               <TrendingUp className="w-6 h-6 text-pink-600 dark:text-pink-400" />
             </div>
