@@ -194,7 +194,7 @@ export function Calendar({
     return (
       <div
         onClick={handleClick}
-        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors py-2 px-3 h-full flex items-center justify-center "
+        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors py-2 px-3 h-full flex items-center justify-center"
       >
         <div className="text-center">
           <div className={`text-xs font-semibold tracking-wide mb-0.5 ${shouldHighlight ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
