@@ -9,7 +9,7 @@ import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { useState, useCallback, useEffect } from "react";
 import { AgendaView } from "./AgendaView";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
+// import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
 const locales = {
   "en-US": enUS,
@@ -685,8 +685,8 @@ export function Calendar({
         .rbc-month-view {
           border: none;
           border-radius: 12px;
-          overflow: hidden;
           box-shadow: none;
+          overflow: visible;
         }
 
         .dark .rbc-month-view {
