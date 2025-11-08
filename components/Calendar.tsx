@@ -104,49 +104,64 @@ export function Calendar({
   );
 
   const eventStyleGetter = (event: CalendarEvent) => {
-    let backgroundColor = "#3b82f6"; // Default blue
+    let backgroundColor = "rgba(59, 130, 246, 0.85)"; // Default blue with transparency
+    let borderColor = "#3b82f6";
+    let textColor = "#1e3a8a"; // Darker blue text for contrast
 
     if (event.isStudyAutopilot) {
-      // Color code by phase
+      // Color code by phase with vibrant, translucent colors
       switch (event.phase) {
         case "Research":
-          backgroundColor = "#3b82f6"; // Blue
+          backgroundColor = "rgba(59, 130, 246, 0.85)"; // Blue
+          borderColor = "#3b82f6";
+          textColor = "#1e3a8a";
           break;
         case "Drafting":
-          backgroundColor = "#8b5cf6"; // Purple
+          backgroundColor = "rgba(139, 92, 246, 0.85)"; // Purple
+          borderColor = "#8b5cf6";
+          textColor = "#4c1d95";
           break;
         case "Revision":
-          backgroundColor = "#22c55e"; // Green
+          backgroundColor = "rgba(34, 197, 94, 0.85)"; // Green
+          borderColor = "#22c55e";
+          textColor = "#14532d";
           break;
         default:
-          backgroundColor = "#6366f1"; // Indigo
+          backgroundColor = "rgba(99, 102, 241, 0.85)"; // Indigo
+          borderColor = "#6366f1";
+          textColor = "#312e81";
       }
 
       // Reduce opacity if completed
       if (event.status === "completed") {
         return {
           style: {
-            backgroundColor,
-            opacity: 0.6,
+            background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.85', '0.7')})`,
+            borderLeft: `3px solid ${borderColor}`,
             borderRadius: "8px",
-            border: "none",
-            color: "white",
-            fontWeight: 500,
+            color: textColor,
+            fontWeight: 600,
+            opacity: 0.7,
+            backdropFilter: "blur(4px)",
           },
         };
       }
     } else {
-      // Google Calendar events (not Study Autopilot)
-      backgroundColor = "#9ca3af"; // Gray
+      // Google Calendar events (not Study Autopilot) - colorful gradient
+      backgroundColor = "rgba(156, 163, 175, 0.85)"; // Gray
+      borderColor = "#6b7280";
+      textColor = "#1f2937";
     }
 
     return {
       style: {
-        backgroundColor,
+        background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.85', '0.7')})`,
+        borderLeft: `3px solid ${borderColor}`,
         borderRadius: "8px",
-        border: "none",
-        color: "white",
-        fontWeight: 500,
+        color: textColor,
+        fontWeight: 600,
+        backdropFilter: "blur(4px)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
       },
     };
   };
@@ -157,6 +172,9 @@ export function Calendar({
     const dayName = format(headerDate, 'EEE').toUpperCase();
     const dayNumber = format(headerDate, 'd');
 
+    // Only highlight today in week view, not in day view
+    const shouldHighlight = isToday && view !== 'day';
+
     const handleClick = () => {
       setPreserveDate(true);
       setDate(headerDate);
@@ -166,13 +184,13 @@ export function Calendar({
     return (
       <div
         onClick={handleClick}
-        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors p-3 h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"
+        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors py-2 px-3 h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"
       >
         <div className="text-center">
-          <div className={`text-xs font-semibold tracking-wide mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+          <div className={`text-xs font-semibold tracking-wide mb-0.5 ${shouldHighlight ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
             {dayName}
           </div>
-          <div className={`text-sm font-medium ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : 'text-gray-700 dark:text-gray-300'}`}>
+          <div className={`text-sm font-medium ${shouldHighlight ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : 'text-gray-700 dark:text-gray-300'}`}>
             {dayNumber}
           </div>
         </div>
@@ -306,7 +324,7 @@ export function Calendar({
 
         /* Header Styling - Match month view with grey background */
         .rbc-header {
-          padding: 14px 8px;
+          padding: 12px 8px;
           font-weight: 600;
           color: #6b7280;
           font-size: 11px;
@@ -323,15 +341,17 @@ export function Calendar({
           background: #1f2937;
         }
 
-        /* Month view headers */
+        /* Month view headers - larger to prevent text cutoff */
         .rbc-month-view .rbc-header {
-          padding: 12px 8px;
+          padding: 16px 8px;
+          font-size: 12px;
         }
 
-        /* Time-based view headers - match styling */
+        /* Time-based view headers - smaller padding */
         .rbc-time-view .rbc-header {
-          padding: 14px 8px;
+          padding: 0;
           background: #f9fafb;
+          overflow: hidden;
         }
 
         .dark .rbc-time-view .rbc-header {
@@ -368,15 +388,15 @@ export function Calendar({
           flex: 1;
         }
 
-        /* Time header gutter - empty space above time labels */
+        /* Time header gutter - empty space above time labels - match header grey */
         .rbc-time-header-gutter {
-          background: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb !important;
+          border-bottom: 1px solid #e5e7eb !important;
         }
 
         .dark .rbc-time-header-gutter {
-          background: #1f2937;
-          border-bottom-color: #4b5563;
+          background: #1f2937 !important;
+          border-bottom-color: #4b5563 !important;
         }
 
         .rbc-allday-cell {
@@ -426,26 +446,27 @@ export function Calendar({
           opacity: 0.5;
         }
 
-        /* Events - Clean Notion-style appearance */
+        /* Events - Modern translucent appearance */
         .rbc-event {
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-          transition: all 0.15s ease;
-          box-shadow: none;
+          padding: 6px 10px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s ease;
           cursor: pointer;
-          border: none;
-          border-left: 2px solid rgba(255, 255, 255, 0.4);
+          border: none !important;
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
         }
 
         .rbc-event:hover {
-          opacity: 0.9;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
         }
 
         .rbc-event.rbc-selected {
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+          transform: scale(1.02);
         }
 
         /* Time grid - darker background to match month view tone */
