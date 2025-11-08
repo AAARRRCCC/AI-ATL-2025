@@ -54,13 +54,18 @@ export function Calendar({
 }: CalendarProps) {
   const [view, setView] = useState<View | "agenda">("week");
   const [date, setDate] = useState(new Date());
+  const [preserveDate, setPreserveDate] = useState(false);
 
-  // When switching to day view, default to today
+  // When switching to day view, default to today unless preserving a date
   useEffect(() => {
-    if (view === "day") {
+    if (view === "day" && !preserveDate) {
       setDate(new Date());
     }
-  }, [view]);
+    // Reset preserve flag after switching
+    if (preserveDate) {
+      setPreserveDate(false);
+    }
+  }, [view, preserveDate]);
 
   const handleEventDrop = useCallback(
     ({ event, start, end }: any) => {
@@ -144,6 +149,35 @@ export function Calendar({
         fontWeight: 500,
       },
     };
+  };
+
+  // Custom header component for week/day views
+  const CustomDateHeader = ({ date: headerDate, label }: any) => {
+    const isToday = format(headerDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+    const dayName = format(headerDate, 'EEE').toUpperCase();
+    const dayNumber = format(headerDate, 'd');
+
+    const handleClick = () => {
+      setPreserveDate(true);
+      setDate(headerDate);
+      setView('day');
+    };
+
+    return (
+      <div
+        onClick={handleClick}
+        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors p-2 rounded"
+      >
+        <div className="text-center">
+          <div className={`text-xs font-semibold tracking-wide mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+            {dayName}
+          </div>
+          <div className={`text-sm font-medium ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : 'text-gray-900 dark:text-gray-100'}`}>
+            {dayNumber}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Custom toolbar component
@@ -270,50 +304,64 @@ export function Calendar({
           background: transparent;
         }
 
-        /* Header Styling - Clean, minimal headers */
+        /* Header Styling - Match month view day labels */
         .rbc-header {
-          padding: 12px 8px;
+          padding: 16px 4px;
           font-weight: 600;
-          color: #9ca3af;
+          color: #6b7280;
           font-size: 11px;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.8px;
           text-transform: uppercase;
-          border-bottom: none;
-          background: transparent;
+          border-bottom: 1px solid #e5e7eb;
+          background: white;
           text-align: center;
         }
 
         .dark .rbc-header {
+          color: #9ca3af;
+          border-bottom-color: #374151;
+          background: #1f2937;
+        }
+
+        /* Month view headers */
+        .rbc-month-view .rbc-header {
+          padding: 12px 4px;
+          font-weight: 600;
           color: #6b7280;
+          font-size: 11px;
+          letter-spacing: 0.8px;
         }
 
-        /* Time-based view headers - show day and date */
+        /* Time-based view - headers are custom components */
         .rbc-time-view .rbc-header {
-          padding: 8px 4px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .rbc-time-view .rbc-header span {
-          display: block;
-          text-align: center;
+          padding: 0;
+          border-bottom: none;
+          background: transparent;
         }
 
         /* Remove gap between headers and time content in week/day view */
         .rbc-time-header {
           margin-bottom: 0 !important;
           overflow: visible !important;
-          border-bottom: 1px solid #f0f0f0;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .dark .rbc-time-header {
-          border-bottom-color: #2a2e33;
+          border-bottom-color: #374151;
         }
 
         .rbc-time-header-content {
           border-left: none;
+          flex: 1;
+        }
+
+        /* Ensure even column distribution */
+        .rbc-time-header-content .rbc-row {
+          display: flex;
+        }
+
+        .rbc-time-header-content .rbc-header {
+          flex: 1;
         }
 
         /* Remove the gutter row that creates the gap */
@@ -411,6 +459,8 @@ export function Calendar({
         /* Very subtle dividers between days - barely visible */
         .rbc-time-column {
           border-left: 1px solid #fafafa;
+          flex: 1;
+          min-width: 0;
         }
 
         .dark .rbc-time-column {
@@ -419,6 +469,12 @@ export function Calendar({
 
         .rbc-time-column:first-child {
           border-left: none;
+        }
+
+        /* Ensure time columns container uses flexbox */
+        .rbc-time-content > .rbc-time-column {
+          display: flex;
+          flex-direction: column;
         }
 
         /* Add subtle right border to time gutter */
@@ -430,26 +486,38 @@ export function Calendar({
           border-right-color: #2a2e33 !important;
         }
 
-        /* Time labels - Ultra subtle and minimal */
+        /* Time labels - Align with rows and style like day labels */
         .rbc-time-slot {
-          color: #d1d5db;
-          font-size: 10px;
-          font-weight: 400;
+          color: #6b7280;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
         }
 
         .dark .rbc-time-slot {
-          color: #4b5563;
+          color: #9ca3af;
         }
 
-        /* Time slot in gutter */
+        /* Time slot in gutter - align to top of slot */
         .rbc-label {
-          color: #9ca3af;
-          font-size: 10px;
-          padding-right: 8px;
+          color: #6b7280;
+          font-size: 11px;
+          font-weight: 500;
+          padding-right: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          position: relative;
+          top: -10px;
         }
 
         .dark .rbc-label {
-          color: #6b7280;
+          color: #9ca3af;
+        }
+
+        /* Time gutter styling */
+        .rbc-time-gutter {
+          width: 70px;
         }
 
         /* Current time indicator - Clean and simple */
@@ -704,6 +772,12 @@ export function Calendar({
           date={date}
           components={{
             toolbar: CustomToolbar,
+            week: {
+              header: CustomDateHeader,
+            },
+            day: {
+              header: CustomDateHeader,
+            },
           }}
           onNavigate={setDate}
           onEventDrop={handleEventDrop}

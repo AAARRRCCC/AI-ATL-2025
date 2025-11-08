@@ -93,6 +93,17 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
     fetchEvents();
   }, [fetchEvents]);
 
+  // Auto-refresh every 30 seconds to catch chatbot-created events
+  useEffect(() => {
+    if (!userId || !isCalendarConnected) return;
+
+    const interval = setInterval(() => {
+      fetchEvents(false);
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [userId, isCalendarConnected, fetchEvents]);
+
   const handleRefresh = () => {
     fetchEvents(true);
   };
