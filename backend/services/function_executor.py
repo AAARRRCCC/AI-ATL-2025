@@ -362,23 +362,52 @@ class FunctionExecutor:
         end_date: str
     ) -> Dict[str, Any]:
         """
-        Get calendar events (placeholder).
-
-        TODO: Implement Google Calendar API integration.
+        Get calendar events from Google Calendar.
 
         Args:
             user_id: User ID
-            start_date: Start date
-            end_date: End date
+            start_date: Start date (ISO format)
+            end_date: End date (ISO format)
 
         Returns:
             Dict with calendar events
         """
-        return {
-            "success": True,
-            "events": [],
-            "message": "Calendar integration coming soon"
-        }
+        if not self.auth_token:
+            return {
+                "success": False,
+                "events": [],
+                "message": "No authentication token available"
+            }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.api_base_url}/api/calendar/events",
+                    params={"start_date": start_date, "end_date": end_date},
+                    headers={"Authorization": f"Bearer {self.auth_token}"},
+                    timeout=30.0
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    return {
+                        "success": True,
+                        "events": data.get("events", []),
+                        "message": f"Found {len(data.get('events', []))} events"
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "events": [],
+                        "message": f"Calendar API error: {response.status_code}"
+                    }
+        except Exception as e:
+            print(f"Failed to fetch calendar events: {e}")
+            return {
+                "success": False,
+                "events": [],
+                "message": str(e)
+            }
 
     async def reschedule_task(
         self,

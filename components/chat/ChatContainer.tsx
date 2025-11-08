@@ -26,7 +26,7 @@ export function ChatContainer({ userId }: ChatContainerProps) {
   }, [messages, isTyping]);
 
   const handleClearChat = async () => {
-    if (!confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
+    if (!confirm('Are you sure you want to clear ALL data (chat, assignments, tasks)? This cannot be undone.')) {
       return;
     }
 
@@ -39,7 +39,7 @@ export function ChatContainer({ userId }: ChatContainerProps) {
         return;
       }
 
-      const response = await fetch('/api/chat/clear', {
+      const response = await fetch('/api/assignments/clear-all', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -47,17 +47,17 @@ export function ChatContainer({ userId }: ChatContainerProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to clear chat');
+        throw new Error('Failed to clear data');
       }
 
       const data = await response.json();
-      toast.success(`Cleared ${data.deleted_count} messages`);
+      toast.success(`Cleared ${data.deleted.assignments} assignments, ${data.deleted.tasks} tasks, ${data.deleted.messages} messages`);
 
-      // Reload the page to refresh the chat
-      window.location.reload();
+      // Reload the page to refresh everything
+      setTimeout(() => window.location.reload(), 1500);
     } catch (error) {
-      console.error('Error clearing chat:', error);
-      toast.error('Failed to clear chat history');
+      console.error('Error clearing data:', error);
+      toast.error('Failed to clear data');
     } finally {
       setIsClearing(false);
     }
