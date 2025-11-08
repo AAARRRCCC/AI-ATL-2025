@@ -372,7 +372,16 @@ class FunctionExecutor:
         Returns:
             Dict with calendar events
         """
+        print(f"\n{'='*60}")
+        print(f"DEBUG: get_calendar_events called")
+        print(f"DEBUG: User ID: {user_id}")
+        print(f"DEBUG: Start date: {start_date}")
+        print(f"DEBUG: End date: {end_date}")
+        print(f"DEBUG: Auth token present: {bool(self.auth_token)}")
+        print(f"{'='*60}\n")
+
         if not self.auth_token:
+            print("ERROR: No auth token available")
             return {
                 "success": False,
                 "events": [],
@@ -380,29 +389,46 @@ class FunctionExecutor:
             }
 
         try:
+            url = f"{self.api_base_url}/api/calendar/events"
+            params = {"start_date": start_date, "end_date": end_date}
+
+            print(f"DEBUG: Calling calendar events API")
+            print(f"DEBUG: URL: {url}")
+            print(f"DEBUG: Params: {params}")
+
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self.api_base_url}/api/calendar/events",
-                    params={"start_date": start_date, "end_date": end_date},
+                    url,
+                    params=params,
                     headers={"Authorization": f"Bearer {self.auth_token}"},
                     timeout=30.0
                 )
 
+                print(f"DEBUG: Response status: {response.status_code}")
+                print(f"DEBUG: Response body: {response.text}")
+
                 if response.status_code == 200:
                     data = response.json()
+                    events = data.get("events", [])
+                    print(f"DEBUG: Successfully fetched {len(events)} events")
+                    for i, event in enumerate(events):
+                        print(f"DEBUG: Event {i+1}: {event.get('title')} - {event.get('start')}")
                     return {
                         "success": True,
-                        "events": data.get("events", []),
-                        "message": f"Found {len(data.get('events', []))} events"
+                        "events": events,
+                        "message": f"Found {len(events)} events"
                     }
                 else:
+                    print(f"ERROR: Calendar API returned {response.status_code}")
                     return {
                         "success": False,
                         "events": [],
                         "message": f"Calendar API error: {response.status_code}"
                     }
         except Exception as e:
-            print(f"Failed to fetch calendar events: {e}")
+            print(f"ERROR: Failed to fetch calendar events: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "success": False,
                 "events": [],
