@@ -10,7 +10,7 @@ import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from .functions import study_tool
+from .functions import AVAILABLE_FUNCTIONS
 
 
 class ChatHandler:
@@ -82,8 +82,8 @@ Be supportive and help reduce procrastination through momentum, not punishment.
 
         # Initialize Gemini model with function calling
         self.model = genai.GenerativeModel(
-            model_name='gemini-1.5-pro-latest',  # or 'gemini-1.5-flash-latest' for faster
-            tools=[study_tool],
+            model_name='gemini-1.5-pro',  # or 'gemini-1.5-flash' for faster
+            tools=AVAILABLE_FUNCTIONS,
             system_instruction=self.SYSTEM_INSTRUCTION
         )
 
@@ -145,16 +145,15 @@ Be supportive and help reduce procrastination through momentum, not punishment.
                     })
 
                     # Send function response back to model
-                    response = chat.send_message(
-                        genai.protos.Content(
-                            parts=[genai.protos.Part(
-                                function_response=genai.protos.FunctionResponse(
-                                    name=fn.name,
-                                    response={"result": result}
-                                )
-                            )]
-                        )
-                    )
+                    response = chat.send_message({
+                        "role": "function",
+                        "parts": [{
+                            "function_response": {
+                                "name": fn.name,
+                                "response": result
+                            }
+                        }]
+                    })
 
             if not has_function_call:
                 break
