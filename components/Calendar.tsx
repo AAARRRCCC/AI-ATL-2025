@@ -317,7 +317,7 @@ export function Calendar({
             }
           }
         `}</style>
-        <CustomToolbar label={format(date, "MMMM yyyy")} onNavigate={() => {}} onView={() => {}} />
+        <CustomToolbar label={format(date, "MMMM yyyy")} onNavigate={() => { }} onView={() => { }} />
         <AgendaView events={events} onEventClick={onEventClick} />
       </div>
     );
@@ -742,11 +742,11 @@ export function Calendar({
           border-radius: 12px;
           overflow: hidden;
           box-shadow: none;
-          background: transparent;
+          background: #f9fafb;
         }
 
         .dark .rbc-time-view {
-          background: transparent;
+          background: #1f2937;
         }
 
         /* Add subtle container background with rounded corners */
