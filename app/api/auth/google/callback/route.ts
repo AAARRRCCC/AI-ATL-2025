@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
-import { getDb } from "@/lib/mongodb";
+import { getDatabase } from "@/lib/mongodb";
 import { USERS_COLLECTION } from "@/models/User";
 import { ObjectId } from "mongodb";
 
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Update user with OAuth tokens
-    const db = await getDb();
+    const db = await getDatabase();
     const usersCollection = db.collection(USERS_COLLECTION);
 
     const tokenExpiry = tokens.expiry_date
