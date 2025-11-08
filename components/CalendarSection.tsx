@@ -203,13 +203,13 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
         prevEvents.map((event) =>
           event.id === tempId
             ? {
-                id: result.event.id,
-                title: result.event.summary || title,
-                start,
-                end,
-                description,
-                isStudyAutopilot: false,
-              }
+              id: result.event.id,
+              title: result.event.summary || title,
+              start,
+              end,
+              description,
+              isStudyAutopilot: false,
+            }
             : event
         )
       );
@@ -321,7 +321,7 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
       )}
 
       {/* Calendar Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-t-xl shadow-lg p-4 md:p-6 border-t-4 border-blue-400">
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-t-xl shadow-lg p-4 md:p-6 ">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg shadow-md">
