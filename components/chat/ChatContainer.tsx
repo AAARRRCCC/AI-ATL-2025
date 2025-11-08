@@ -25,8 +25,49 @@ export function ChatContainer({ userId }: ChatContainerProps) {
     }
   }, [messages, isTyping]);
 
+  const handleDebugMongoDB = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please log in first');
+      return;
+    }
+
+    try {
+      // Check user database location
+      const userResponse = await fetch('/api/debug/find-user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const userData = await userResponse.json();
+
+      // Check collections data
+      const response = await fetch('/api/debug/mongodb', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+
+      console.log('='.repeat(80));
+      console.log('USER LOCATION:');
+      console.log('='.repeat(80));
+      console.log(JSON.stringify(userData, null, 2));
+      console.log('='.repeat(80));
+      console.log('MONGODB DEBUG DATA:');
+      console.log('='.repeat(80));
+      console.log(JSON.stringify(data, null, 2));
+      console.log('='.repeat(80));
+
+      toast.success('MongoDB data dumped to console - check browser dev tools');
+    } catch (error) {
+      console.error('Error debugging MongoDB:', error);
+      toast.error('Failed to debug MongoDB');
+    }
+  };
+
   const handleClearChat = async () => {
-    if (!confirm('Are you sure you want to clear ALL data (chat, assignments, tasks)? This cannot be undone.')) {
+    if (!confirm('Are you sure you want to clear ALL data (chat, assignments, tasks, and calendar events)? This cannot be undone.')) {
       return;
     }
 
@@ -39,19 +80,38 @@ export function ChatContainer({ userId }: ChatContainerProps) {
         return;
       }
 
-      const response = await fetch('/api/assignments/clear-all', {
+      // Clear MongoDB data (assignments, tasks, messages)
+      const dbResponse = await fetch('/api/assignments/clear-all', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to clear data');
+      if (!dbResponse.ok) {
+        throw new Error('Failed to clear database data');
       }
 
-      const data = await response.json();
-      toast.success(`Cleared ${data.deleted.assignments} assignments, ${data.deleted.tasks} tasks, ${data.deleted.messages} messages`);
+      const dbData = await dbResponse.json();
+
+      // Clear Google Calendar study events
+      const calendarResponse = await fetch('/api/calendar/clear-study-events', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!calendarResponse.ok) {
+        throw new Error('Failed to clear calendar events');
+      }
+
+      const calendarData = await calendarResponse.json();
+
+      toast.success(
+        `Cleared ${dbData.deleted.assignments} assignments, ${dbData.deleted.tasks} tasks, ` +
+        `${dbData.deleted.messages} messages, and ${calendarData.deleted_count} calendar events`
+      );
 
       // Reload the page to refresh everything
       setTimeout(() => window.location.reload(), 1500);
@@ -74,6 +134,15 @@ export function ChatContainer({ userId }: ChatContainerProps) {
 
         {/* Connection Status & Actions */}
         <div className="flex items-center gap-3">
+          {/* Debug MongoDB Button */}
+          <button
+            onClick={handleDebugMongoDB}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+            title="Debug MongoDB collections"
+          >
+            🔍 Debug
+          </button>
+
           {/* Clear Chat Button */}
           {messages.length > 0 && (
             <button

@@ -29,7 +29,8 @@ class Database:
             raise ValueError("MONGODB_URI environment variable is not set")
 
         self.client = AsyncIOMotorClient(mongodb_uri)
-        self.db = self.client.study_autopilot
+        # Use hyphen to match frontend database name
+        self.db = self.client["study-autopilot"]
 
         # Test the connection
         await self.client.admin.command('ping')

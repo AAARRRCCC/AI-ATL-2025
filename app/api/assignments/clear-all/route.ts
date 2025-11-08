@@ -28,13 +28,13 @@ export async function DELETE(request: NextRequest) {
       user_id: payload.userId,
     });
 
-    // Delete all tasks
-    const tasksResult = await db.collection("tasks").deleteMany({
+    // Delete all tasks (subtasks collection in backend)
+    const tasksResult = await db.collection("subtasks").deleteMany({
       user_id: payload.userId,
     });
 
     // Delete all messages (chat history)
-    const messagesResult = await db.collection("messages").deleteMany({
+    const messagesResult = await db.collection("chat_messages").deleteMany({
       user_id: payload.userId,
     });
 
