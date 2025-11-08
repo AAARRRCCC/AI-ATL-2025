@@ -285,29 +285,86 @@ class FunctionExecutor:
 
             # Call Next.js API to create Google Calendar events
             calendar_result = None
-            if self.auth_token:
-                try:
-                    async with httpx.AsyncClient() as client:
-                        response = await client.post(
-                            f"{self.api_base_url}/api/calendar/create-events",
-                            json={"tasks": scheduled_tasks},
-                            headers={"Authorization": f"Bearer {self.auth_token}"},
-                            timeout=30.0
-                        )
+            calendar_error = None
 
-                        if response.status_code == 200:
-                            calendar_result = response.json()
+            if not self.auth_token:
+                print("WARNING: No auth token available, cannot create calendar events")
+                return {
+                    "success": False,
+                    "error": "No authentication token available. Cannot create calendar events.",
+                    "scheduled_tasks": scheduled_tasks,
+                    "calendar_events": []
+                }
+
+            try:
+                print(f"\n{'='*60}")
+                print(f"DEBUG: Calling calendar API to create events")
+                print(f"DEBUG: API URL: {self.api_base_url}/api/calendar/create-events")
+                print(f"DEBUG: Number of tasks: {len(scheduled_tasks)}")
+                print(f"DEBUG: Auth token present: {bool(self.auth_token)}")
+
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{self.api_base_url}/api/calendar/create-events",
+                        json={"tasks": scheduled_tasks},
+                        headers={"Authorization": f"Bearer {self.auth_token}"},
+                        timeout=30.0
+                    )
+
+                    print(f"DEBUG: Calendar API response status: {response.status_code}")
+                    print(f"DEBUG: Calendar API response body: {response.text}")
+
+                    if response.status_code == 200:
+                        calendar_result = response.json()
+                        created_count = len(calendar_result.get("created_events", []))
+                        error_count = len(calendar_result.get("errors", []))
+
+                        print(f"DEBUG: Successfully created {created_count} events")
+                        if error_count > 0:
+                            print(f"WARNING: {error_count} events failed to create")
+                            print(f"WARNING: Errors: {calendar_result.get('errors')}")
+
+                        print(f"{'='*60}\n")
+
+                        # Return success only if at least one event was created
+                        if created_count > 0:
+                            return {
+                                "success": True,
+                                "scheduled_tasks": scheduled_tasks,
+                                "calendar_events": calendar_result.get("created_events", []),
+                                "errors": calendar_result.get("errors", []),
+                                "message": f"Scheduled {len(scheduled_tasks)} tasks and successfully created {created_count} calendar events" +
+                                          (f" ({error_count} failed)" if error_count > 0 else "")
+                            }
                         else:
-                            print(f"Calendar API error: {response.status_code}")
-                except Exception as e:
-                    print(f"Failed to create calendar events: {e}")
-
-            return {
-                "success": True,
-                "scheduled_tasks": scheduled_tasks,
-                "calendar_events": calendar_result.get("created_events", []) if calendar_result else [],
-                "message": f"Scheduled {len(scheduled_tasks)} tasks and created {len(calendar_result.get('created_events', [])) if calendar_result else 0} calendar events"
-            }
+                            return {
+                                "success": False,
+                                "error": f"Failed to create any calendar events. Errors: {calendar_result.get('errors', [])}",
+                                "scheduled_tasks": scheduled_tasks,
+                                "calendar_events": []
+                            }
+                    else:
+                        error_msg = f"Calendar API returned status {response.status_code}: {response.text}"
+                        print(f"ERROR: {error_msg}")
+                        print(f"{'='*60}\n")
+                        return {
+                            "success": False,
+                            "error": error_msg,
+                            "scheduled_tasks": scheduled_tasks,
+                            "calendar_events": []
+                        }
+            except Exception as e:
+                error_msg = f"Failed to create calendar events: {type(e).__name__}: {str(e)}"
+                print(f"ERROR: {error_msg}")
+                import traceback
+                traceback.print_exc()
+                print(f"{'='*60}\n")
+                return {
+                    "success": False,
+                    "error": error_msg,
+                    "scheduled_tasks": scheduled_tasks,
+                    "calendar_events": []
+                }
 
         except Exception as e:
             return {
