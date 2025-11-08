@@ -13,7 +13,7 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ userId }: ChatContainerProps) {
-  const { messages, sendMessage, isConnected, isTyping, error } = useWebSocket(userId);
+  const { messages, sendMessage, isConnected, isTyping, error, isInitializing } = useWebSocket(userId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isClearing, setIsClearing] = useState(false);
@@ -187,7 +187,19 @@ export function ChatContainer({ userId }: ChatContainerProps) {
         className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
         style={{ maxHeight: 'calc(100vh - 400px)' }}
       >
-        {messages.length === 0 ? (
+        {isInitializing ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4 animate-pulse">
+              <span className="text-3xl">🤖</span>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Connecting...
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Setting up your AI assistant
+            </p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
               <span className="text-3xl">🤖</span>
