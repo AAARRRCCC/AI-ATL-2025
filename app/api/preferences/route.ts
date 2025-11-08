@@ -52,8 +52,19 @@ export async function GET(request: NextRequest) {
         updatedAt: now,
       };
 
-      await preferencesCollection.insertOne(newPreferences);
-      preferences = newPreferences;
+      const insertResult = await preferencesCollection.insertOne(newPreferences);
+
+      // Fetch the newly created document with _id
+      preferences = await preferencesCollection.findOne({
+        _id: insertResult.insertedId,
+      });
+
+      if (!preferences) {
+        return NextResponse.json(
+          { error: 'Failed to create preferences' },
+          { status: 500 }
+        );
+      }
     }
 
     // Merge with defaults to ensure all fields are present
