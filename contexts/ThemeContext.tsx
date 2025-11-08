@@ -20,14 +20,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.add('no-transition');
 
     setMounted(true);
-    // Check localStorage first, then system preference
+
+    // Sync React state with the theme that was already applied by the blocking script
     const storedTheme = localStorage.getItem('theme') as Theme | null;
     if (storedTheme) {
       setTheme(storedTheme);
-      document.documentElement.classList.toggle('dark', storedTheme === 'dark');
     } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       setTheme('dark');
-      document.documentElement.classList.add('dark');
     }
 
     // Re-enable transitions after a short delay
