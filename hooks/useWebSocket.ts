@@ -19,6 +19,7 @@ interface UseWebSocketReturn {
   isConnected: boolean;
   isTyping: boolean;
   error: string | null;
+  isInitializing: boolean;
 }
 
 export function useWebSocket(userId: string | null): UseWebSocketReturn {
@@ -26,6 +27,7 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -50,6 +52,7 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
       ws.onopen = () => {
         setIsConnected(true);
         setError(null);
+        setIsInitializing(false);
         reconnectAttemptsRef.current = 0;
 
         // Send authentication with JWT token
@@ -111,12 +114,15 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
             connect();
           }, delay);
         } else {
+          // Give up reconnecting - stop showing initializing state
+          setIsInitializing(false);
           setError('Connection lost. Please refresh the page.');
         }
       };
     } catch (err) {
       console.error('Error creating WebSocket:', err);
       setError('Failed to connect');
+      setIsInitializing(false);
     }
   }, [userId]);
 
@@ -169,7 +175,8 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
         wsRef.current = null;
       }
     };
-  }, [userId, connect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Only reconnect when userId changes, not when connect function changes
 
   return {
     messages,
@@ -177,5 +184,6 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
     isConnected,
     isTyping,
     error,
+    isInitializing,
   };
 }
