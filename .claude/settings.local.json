@@ -14,7 +14,11 @@
       "Bash(test:*)",
       "Bash(git push:*)",
       "Bash(npm install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(node:*)",
+      "Bash(git update-index:*)",
+      "Bash(del setup.sh)"
     ],
     "deny": [],
     "ask": []
