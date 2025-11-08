@@ -166,13 +166,14 @@ export function Calendar({
     return (
       <div
         onClick={handleClick}
-        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors p-2 rounded"
+        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors p-3 h-full flex items-center justify-center"
+        style={{ background: '#f9fafb' }}
       >
         <div className="text-center">
           <div className={`text-xs font-semibold tracking-wide mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
             {dayName}
           </div>
-          <div className={`text-sm font-medium ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : 'text-gray-900 dark:text-gray-100'}`}>
+          <div className={`text-sm font-medium ${isToday ? 'bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center mx-auto' : 'text-gray-700 dark:text-gray-300'}`}>
             {dayNumber}
           </div>
         </div>
@@ -304,39 +305,38 @@ export function Calendar({
           background: transparent;
         }
 
-        /* Header Styling - Match month view day labels */
+        /* Header Styling - Match month view with grey background */
         .rbc-header {
-          padding: 16px 4px;
+          padding: 14px 8px;
           font-weight: 600;
           color: #6b7280;
           font-size: 11px;
           letter-spacing: 0.8px;
           text-transform: uppercase;
           border-bottom: 1px solid #e5e7eb;
-          background: white;
+          background: #f9fafb;
           text-align: center;
         }
 
         .dark .rbc-header {
           color: #9ca3af;
-          border-bottom-color: #374151;
+          border-bottom-color: #4b5563;
           background: #1f2937;
         }
 
         /* Month view headers */
         .rbc-month-view .rbc-header {
-          padding: 12px 4px;
-          font-weight: 600;
-          color: #6b7280;
-          font-size: 11px;
-          letter-spacing: 0.8px;
+          padding: 12px 8px;
         }
 
-        /* Time-based view - headers are custom components */
+        /* Time-based view headers - match styling */
         .rbc-time-view .rbc-header {
-          padding: 0;
-          border-bottom: none;
-          background: transparent;
+          padding: 14px 8px;
+          background: #f9fafb;
+        }
+
+        .dark .rbc-time-view .rbc-header {
+          background: #1f2937;
         }
 
         /* Remove gap between headers and time content in week/day view */
@@ -364,9 +364,15 @@ export function Calendar({
           flex: 1;
         }
 
-        /* Remove the gutter row that creates the gap */
+        /* Time header gutter - empty space above time labels */
         .rbc-time-header-gutter {
-          display: none !important;
+          background: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .dark .rbc-time-header-gutter {
+          background: #1f2937;
+          border-bottom-color: #4b5563;
         }
 
         .rbc-allday-cell {
@@ -438,14 +444,16 @@ export function Calendar({
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
         }
 
-        /* Time grid - Extremely minimal like Notion */
+        /* Time grid - darker background to match month view tone */
         .rbc-day-slot .rbc-time-slot {
-          border-top: 1px solid #fafafa;
-          min-height: 40px;
+          border-top: 1px solid #e5e7eb;
+          min-height: 48px;
+          background: white;
         }
 
         .dark .rbc-day-slot .rbc-time-slot {
-          border-top-color: #2a2e33;
+          border-top-color: #374151;
+          background: #111827;
         }
 
         .rbc-time-content {
@@ -456,15 +464,15 @@ export function Calendar({
           border-left: none;
         }
 
-        /* Very subtle dividers between days - barely visible */
+        /* Very subtle dividers between days */
         .rbc-time-column {
-          border-left: 1px solid #fafafa;
+          border-left: 1px solid #e5e7eb;
           flex: 1;
           min-width: 0;
         }
 
         .dark .rbc-time-column {
-          border-left-color: #2a2e33;
+          border-left-color: #374151;
         }
 
         .rbc-time-column:first-child {
@@ -477,47 +485,67 @@ export function Calendar({
           flex-direction: column;
         }
 
-        /* Add subtle right border to time gutter */
+        /* Time gutter styling - grey background like headers */
         .rbc-time-gutter {
-          border-right: 1px solid #fafafa !important;
+          border-right: 1px solid #e5e7eb !important;
+          background: #f9fafb;
+          width: 80px;
         }
 
         .dark .rbc-time-gutter {
-          border-right-color: #2a2e33 !important;
+          border-right-color: #4b5563 !important;
+          background: #1f2937;
         }
 
-        /* Time labels - Align with rows and style like day labels */
+        /* Time labels - Style like headers with grey background */
         .rbc-time-slot {
           color: #6b7280;
           font-size: 11px;
           font-weight: 500;
           text-transform: uppercase;
-          letter-spacing: 0.3px;
+          letter-spacing: 0.5px;
         }
 
         .dark .rbc-time-slot {
           color: #9ca3af;
         }
 
-        /* Time slot in gutter - align to top of slot */
+        /* Time slot in gutter - center in box and align borders */
         .rbc-label {
           color: #6b7280;
           font-size: 11px;
           font-weight: 500;
           padding-right: 12px;
+          text-align: center;
           text-transform: uppercase;
-          letter-spacing: 0.3px;
-          position: relative;
-          top: -10px;
+          letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
         }
 
         .dark .rbc-label {
           color: #9ca3af;
         }
 
-        /* Time gutter styling */
+        /* Ensure time slot containers are properly sized */
+        .rbc-timeslot-group {
+          min-height: 48px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .dark .rbc-timeslot-group {
+          border-bottom-color: #374151;
+        }
+
+        .rbc-timeslot-group:last-child {
+          border-bottom: none;
+        }
+
+        /* Time gutter width */
         .rbc-time-gutter {
-          width: 70px;
+          width: 80px;
         }
 
         /* Current time indicator - Clean and simple */
@@ -685,7 +713,16 @@ export function Calendar({
         }
 
         .dark .rbc-time-content {
-          background: #1f2937;
+          background: #111827;
+        }
+
+        /* Time content scrollable area */
+        .rbc-time-content > * + * > * {
+          border-left: 1px solid #e5e7eb;
+        }
+
+        .dark .rbc-time-content > * + * > * {
+          border-left-color: #374151;
         }
 
         /* Selection highlight - Simple and clean */
