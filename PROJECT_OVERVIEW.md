@@ -16,103 +16,154 @@ An automated study planner that breaks down assignments into scheduled, achievab
 - **Framer Motion** - Production-ready animation library for smooth, impressive transitions
 - **Shadcn/ui** - High-quality, customizable component library (copy-paste components)
 - **Aceternity UI** / **Magic UI** - Premium landing page components with stunning effects
+- **React Big Calendar** or **FullCalendar** - Drag-and-drop calendar with Google Calendar integration
+- **@dnd-kit** - Modern drag-and-drop toolkit for task/calendar editing
 
 **State Management & Data:**
 - **Zustand** or **Jotai** - Lightweight state management (simpler than Redux)
 - **React Query** - Server state management, caching, and data fetching
+- **NextAuth.js** - Authentication with Google OAuth support
 
 **Backend:**
-- **FastAPI** (Python) - Modern, fast, auto-documented API framework
-- **SQLite** - Zero-config database (perfect for localhost demo)
+- **FastAPI** (Python) - Modern, fast, auto-documented API framework with WebSocket support
+- **MongoDB Atlas** - Cloud-hosted NoSQL database (free tier, scalable)
+- **Motor** - Async MongoDB driver for Python
 - **Pydantic** - Data validation (built into FastAPI)
+- **Python Google Auth Libraries** - OAuth2 + Calendar API integration
 
-**Database:** SQLite (file-based, zero setup) - stores assignments, sub-tasks, user preferences, completion history
+**Database:** MongoDB Atlas - stores users, assignments, sub-tasks, chat history, preferences
 
 **Key APIs:**
-- Google Calendar API (read/write) - Python client library
-- Anthropic Claude API or OpenAI API (for assignment analysis and task breakdown)
+- **Google OAuth 2.0** - User authentication
+- **Google Calendar API** (read/write) - Python client library for calendar sync
+- **Google Gemini API** (gemini-1.5-pro or gemini-1.5-flash) - AI chatbot with function calling for:
+  - Assignment breakdown
+  - Task creation
+  - Schedule editing
+  - Natural language interaction
 
 **Development Tools:**
 - **Docker Compose** - One-command setup for frontend + backend
 - **Lucide Icons** - Clean, consistent icon set
 - **Date-fns** - Lightweight date manipulation
+- **Socket.io** (optional) - Real-time chat updates
 
 ### Why This Stack
 
-**Speed:** Next.js + Tailwind enables rapid UI development. Shadcn/ui gives you beautiful components instantly.
+**Flexibility:** MongoDB Atlas schema-less design lets you iterate fast during the hackathon without migrations.
 
-**Visual Impact:** Framer Motion + Aceternity UI create stunning animations that wow judges in demos.
+**Google Integration:** NextAuth.js + Google OAuth gives you authentication AND calendar access in one flow. Using Google's ecosystem (Gemini + Calendar + Auth) means fewer API keys and better integration.
 
-**Reliability:** FastAPI provides auto-generated docs and type safety. SQLite requires zero configuration.
+**AI Chat Experience:** Gemini 1.5 Pro with function calling enables the chatbot to directly create/edit tasks and calendar events with fast, reliable responses.
 
-**Demo-Ready:** Everything runs localhost with `docker-compose up` - no deployment headaches during the hackathon.
+**Interactive Calendar:** React Big Calendar + dnd-kit creates a professional drag-and-drop experience.
+
+**Demo-Ready:** Everything runs localhost with `docker-compose up` - MongoDB Atlas connects via cloud URI.
 
 -----
 
-## Data Models
+## Data Models (MongoDB Collections)
+
+### User
+
+```javascript
+{
+  _id: ObjectId,
+  email: String,
+  name: String,
+  google_id: String,  // From Google OAuth
+  google_access_token: String (encrypted),
+  google_refresh_token: String (encrypted),
+  profile_picture: String (URL),
+  preferences: {
+    productive_hours: [9, 10, 11, 14, 15, 16],
+    work_session_preference: "50min",  // "25min" | "50min" | "90min"
+    buffer_multiplier: 1.25,
+    subjects_strength: {
+      "Math": "strong",
+      "Writing": "weak"
+    }
+  },
+  created_at: Date,
+  last_login: Date
+}
+```
 
 ### Assignment
 
-```
-- id
-- title
-- description
-- due_date
-- difficulty_level (1-5, user-rated or AI-estimated)
-- subject/category
-- source_file (PDF path or URL)
-- total_estimated_hours
-- status (not_started, in_progress, completed)
-- created_at
+```javascript
+{
+  _id: ObjectId,
+  user_id: ObjectId,  // Reference to User
+  title: String,
+  description: String,
+  due_date: Date,
+  difficulty_level: String,  // "easy" | "medium" | "hard"
+  subject: String,
+  total_estimated_hours: Number,
+  status: String,  // "not_started" | "in_progress" | "completed"
+  created_at: Date,
+  updated_at: Date,
+  created_by: String  // "user" | "ai_chat"
+}
 ```
 
 ### SubTask
 
-```
-- id
-- assignment_id (foreign key)
-- title
-- description
-- estimated_duration (minutes)
-- order_index (sequence in the overall plan)
-- status (pending, scheduled, completed, skipped)
-- actual_duration (tracked when completed)
-- calendar_event_id (Google Calendar event ID)
-```
-
-### CalendarBlock
-
-```
-- id
-- subtask_id (foreign key)
-- start_time
-- end_time
-- was_completed (boolean)
-- completion_time (when they actually finished)
-- skipped_reason (if applicable)
+```javascript
+{
+  _id: ObjectId,
+  assignment_id: ObjectId,  // Reference to Assignment
+  user_id: ObjectId,
+  title: String,
+  description: String,
+  estimated_duration: Number,  // minutes
+  order_index: Number,
+  phase: String,  // e.g., "Research", "Drafting", "Revision"
+  status: String,  // "pending" | "scheduled" | "in_progress" | "completed" | "skipped"
+  actual_duration: Number,  // minutes, tracked when completed
+  calendar_event_id: String,  // Google Calendar event ID
+  scheduled_start: Date,
+  scheduled_end: Date,
+  completed_at: Date,
+  created_at: Date
+}
 ```
 
-### UserPreferences
+### ChatMessage
 
-```
-- id
-- user_id
-- productive_hours (array: e.g., [9,10,11,14,15,16])
-- work_session_preference (25min Pomodoro, 50min blocks, 90min deep work)
-- buffer_multiplier (default 1.25x)
-- subjects_strength (JSON: {"Math": "strong", "Writing": "weak"})
-- break_preferences
+```javascript
+{
+  _id: ObjectId,
+  user_id: ObjectId,
+  role: String,  // "user" | "model" (Gemini uses "model" instead of "assistant")
+  content: String,
+  function_calls: [{  // If AI made function calls
+    name: String,  // "create_assignment" | "schedule_task" | "update_calendar"
+    arguments: Object,
+    result: Object
+  }],
+  timestamp: Date,
+  session_id: String  // Group related messages
+}
 ```
 
-### ProgressStreak
+### CalendarSync
 
-```
-- id
-- user_id
-- week_start_date
-- completed_sessions
-- planned_sessions
-- streak_count (consecutive weeks with 80%+ completion)
+```javascript
+{
+  _id: ObjectId,
+  user_id: ObjectId,
+  last_sync: Date,
+  sync_errors: [String],
+  calendar_events: [{  // Cached Google Calendar events
+    event_id: String,
+    start: Date,
+    end: Date,
+    summary: String,
+    is_study_autopilot: Boolean  // Events we created
+  }]
+}
 ```
 
 -----
