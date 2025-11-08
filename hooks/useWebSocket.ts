@@ -19,6 +19,7 @@ interface UseWebSocketReturn {
   isConnected: boolean;
   isTyping: boolean;
   error: string | null;
+  isInitializing: boolean;
 }
 
 export function useWebSocket(userId: string | null): UseWebSocketReturn {
@@ -26,6 +27,7 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -35,26 +37,22 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
 
   const connect = useCallback(() => {
     if (!userId) {
-      console.log('Cannot connect: No user ID');
       return;
     }
 
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected');
       return;
     }
 
     try {
       const wsUrl = `ws://localhost:8000/ws/chat`;
-      console.log('Connecting to WebSocket:', wsUrl);
-
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
         setError(null);
+        setIsInitializing(false);
         reconnectAttemptsRef.current = 0;
 
         // Send authentication with JWT token
@@ -68,7 +66,6 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('Received message:', data);
 
           if (data.type === 'typing') {
             setIsTyping(true);
@@ -93,38 +90,44 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
         }
       };
 
-      ws.onerror = (event) => {
-        console.error('WebSocket error:', event);
+      ws.onerror = () => {
+        // Silently handle connection errors - they're expected when backend is not running
+        // The onclose handler will trigger reconnection logic
         setError('Cannot connect to AI backend. Make sure the backend server is running on port 8000.');
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         wsRef.current = null;
+
+        // Only log unexpected closures (not normal closures or going away)
+        if (event.code !== 1000 && event.code !== 1001) {
+          console.log('WebSocket closed unexpectedly:', event.code);
+        }
 
         // Attempt to reconnect with exponential backoff
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current);
-          console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
 
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptsRef.current += 1;
             connect();
           }, delay);
         } else {
+          // Give up reconnecting - stop showing initializing state
+          setIsInitializing(false);
           setError('Connection lost. Please refresh the page.');
         }
       };
     } catch (err) {
       console.error('Error creating WebSocket:', err);
       setError('Failed to connect');
+      setIsInitializing(false);
     }
   }, [userId]);
 
   const sendMessage = useCallback((message: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      console.error('WebSocket not connected');
       setError('Not connected. Please wait...');
       return;
     }
@@ -172,7 +175,8 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
         wsRef.current = null;
       }
     };
-  }, [userId, connect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Only reconnect when userId changes, not when connect function changes
 
   return {
     messages,
@@ -180,5 +184,6 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
     isConnected,
     isTyping,
     error,
+    isInitializing,
   };
 }

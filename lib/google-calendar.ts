@@ -36,6 +36,10 @@ export async function getCalendarClient(userId: string) {
 
     const { credentials } = await oauth2Client.refreshAccessToken();
 
+    if (!credentials.access_token) {
+      throw new Error("Failed to refresh access token");
+    }
+
     // Update user with new tokens
     await usersCollection.updateOne(
       { _id: new ObjectId(userId) },
