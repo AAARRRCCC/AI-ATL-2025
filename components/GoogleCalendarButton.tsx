@@ -121,7 +121,7 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
     return (
       <button
         disabled
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-400 cursor-not-allowed ${className}`}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed ${className}`}
       >
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm font-medium">Checking...</span>
@@ -133,7 +133,7 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
     return (
       <button
         onClick={handleDisconnect}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 transition-colors ${className}`}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 transition-colors ${className}`}
       >
         <CheckCircle2 className="h-4 w-4" />
         <span className="text-sm font-medium">Calendar Connected</span>
