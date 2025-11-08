@@ -18,6 +18,7 @@ google-auth-httplib2==0.2.0
 google-api-python-client==2.110.0
 
 # Security and authentication
+cffi>=1.15.0  # Required for cryptography on Windows
 cryptography==41.0.7
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
