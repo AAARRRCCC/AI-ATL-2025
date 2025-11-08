@@ -67,9 +67,18 @@ export async function getCalendarClient(userId: string) {
  * Get calendar events within a date range
  */
 export async function getCalendarEvents(userId: string, startDate: Date, endDate: Date) {
-  try {
-    const calendar = await getCalendarClient(userId);
+  console.log("\n" + "-".repeat(60));
+  console.log("DEBUG: getCalendarEvents called");
+  console.log("DEBUG: User ID:", userId);
+  console.log("DEBUG: Start date:", startDate.toISOString());
+  console.log("DEBUG: End date:", endDate.toISOString());
 
+  try {
+    console.log("DEBUG: Getting calendar client...");
+    const calendar = await getCalendarClient(userId);
+    console.log("DEBUG: Calendar client obtained");
+
+    console.log("DEBUG: Calling Google Calendar API events.list...");
     const response = await calendar.events.list({
       calendarId: "primary",
       timeMin: startDate.toISOString(),
@@ -78,9 +87,24 @@ export async function getCalendarEvents(userId: string, startDate: Date, endDate
       orderBy: "startTime",
     });
 
-    return response.data.items || [];
-  } catch (error) {
-    console.error("Error fetching calendar events:", error);
+    const events = response.data.items || [];
+    console.log("DEBUG: Google Calendar returned", events.length, "events");
+
+    events.forEach((event, i) => {
+      console.log(`DEBUG: Event ${i+1}:`, event.summary, "-", event.start?.dateTime || event.start?.date);
+    });
+
+    console.log("-".repeat(60) + "\n");
+
+    return events;
+  } catch (error: any) {
+    console.error("ERROR: Failed to fetch calendar events");
+    console.error("ERROR: Type:", error.constructor?.name);
+    console.error("ERROR: Message:", error.message);
+    if (error.response) {
+      console.error("ERROR: Google API response:", error.response.data);
+    }
+    console.log("-".repeat(60) + "\n");
     throw error;
   }
 }
