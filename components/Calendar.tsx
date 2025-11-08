@@ -79,8 +79,8 @@ export function Calendar({
       setView(newView);
       setTimeout(() => {
         setIsTransitioning(false);
-      }, 150); // Half of the total transition time
-    }, 150);
+      }, 100); // Half of the total transition time
+    }, 100);
   };
 
   const handleEventDrop = useCallback(
@@ -261,7 +261,7 @@ export function Calendar({
   if (view === "agenda") {
     return (
       <div
-        className={`h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4 transition-opacity duration-300 ${
+        className={`h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4 transition-opacity duration-200 ${
           isTransitioning ? 'opacity-0' : 'opacity-100'
         }`}
       >
@@ -346,7 +346,7 @@ export function Calendar({
 
   return (
     <div
-      className={`h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4 transition-opacity duration-300 ${
+      className={`h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4 transition-opacity duration-200 ${
         isTransitioning ? 'opacity-0' : 'opacity-100'
       }`}
     >
@@ -811,6 +811,20 @@ export function Calendar({
           background-color: rgba(59, 130, 246, 0.2);
         }
 
+        /* Event label during creation - make times readable in light mode */
+        .rbc-event-label,
+        .rbc-addons-dnd .rbc-addons-dnd-drag-preview .rbc-event-label,
+        .rbc-slot-selecting .rbc-event-label {
+          color: #1f2937;
+          font-weight: 600;
+        }
+
+        .dark .rbc-event-label,
+        .dark .rbc-addons-dnd .rbc-addons-dnd-drag-preview .rbc-event-label,
+        .dark .rbc-slot-selecting .rbc-event-label {
+          color: #f9fafb;
+        }
+
         /* Date cell styling - Ultra minimal */
         .rbc-date-cell {
           padding: 8px;
@@ -818,7 +832,7 @@ export function Calendar({
         }
 
         .rbc-date-cell > a {
-          color: #4b5563;
+          color: #374151;
           font-weight: 500;
           font-size: 12px;
           transition: color 0.15s ease;
