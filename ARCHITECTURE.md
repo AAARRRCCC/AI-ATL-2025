@@ -697,17 +697,17 @@ export function StudyCalendar({ tasks, onTaskMove }) {
 ```bash
 # .env.local (Frontend)
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-generate-this
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # .env (Backend)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/study-autopilot
-GEMINI_API_KEY=your-gemini-api-key-from-google-ai-studio
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?appName=YourApp
+GEMINI_API_KEY=your-gemini-api-key
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-JWT_SECRET=your-jwt-secret
+JWT_SECRET=your-generated-jwt-secret
 ```
 
 ### Getting Google Gemini API Key
