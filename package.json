@@ -13,6 +13,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.11.17",
+    "googleapis": "^165.0.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.456.0",
     "mongodb": "^7.0.0",

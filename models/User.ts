@@ -8,6 +8,10 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
+  // Google OAuth tokens for calendar integration
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
+  googleTokenExpiry?: Date;
 }
 
 export interface UserResponse {

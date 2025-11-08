@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rev-parse:*)",
+      "Bash(git for-each-ref:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git log:*)",
+      "Bash(git checkout:*)",
+      "Bash(git tag:*)",
+      "Bash(git branch:*)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(test:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
