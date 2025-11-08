@@ -149,32 +149,19 @@ export async function createStudyEvent(
   endTime: Date,
   taskId?: string
 ) {
-  console.log("\n" + "-".repeat(60));
-  console.log("DEBUG: createStudyEvent called");
-  console.log("DEBUG: User ID:", userId);
-  console.log("DEBUG: Title:", title);
-  console.log("DEBUG: Start time:", startTime);
-  console.log("DEBUG: End time:", endTime);
-  console.log("DEBUG: Task ID:", taskId);
-
   try {
-    console.log("DEBUG: Getting calendar client for user...");
     const calendar = await getCalendarClient(userId);
-    console.log("DEBUG: Calendar client obtained successfully");
-
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    console.log("DEBUG: Using timezone:", timeZone);
 
     const event = {
       summary: `[Study Autopilot] ${title}`,
       description: `${description}\n\n${taskId ? `Task ID: ${taskId}` : ""}`,
       start: {
         dateTime: startTime.toISOString(),
-        timeZone: timeZone,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       end: {
         dateTime: endTime.toISOString(),
-        timeZone: timeZone,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       reminders: {
         useDefault: false,
@@ -183,29 +170,14 @@ export async function createStudyEvent(
       colorId: "9", // Blue color for study sessions
     };
 
-    console.log("DEBUG: Event object:", JSON.stringify(event, null, 2));
-    console.log("DEBUG: Inserting event into Google Calendar...");
-
     const response = await calendar.events.insert({
       calendarId: "primary",
       requestBody: event,
     });
 
-    console.log("DEBUG: Google Calendar API response:", response.data);
-    console.log("DEBUG: Event created successfully with ID:", response.data.id);
-    console.log("-".repeat(60) + "\n");
-
     return response.data;
   } catch (error: any) {
-    console.error("ERROR: Failed to create study event");
-    console.error("ERROR: Error type:", error.constructor?.name);
-    console.error("ERROR: Error message:", error.message);
-    if (error.response) {
-      console.error("ERROR: Google API error response:", error.response.data);
-      console.error("ERROR: Google API error status:", error.response.status);
-    }
-    console.error("ERROR: Full error:", error);
-    console.log("-".repeat(60) + "\n");
+    console.error("Error creating calendar event:", error.message);
     throw error;
   }
 }

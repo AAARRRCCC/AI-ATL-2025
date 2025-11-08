@@ -285,41 +285,22 @@ class FunctionExecutor:
 
             # Call Next.js API to create Google Calendar events
             calendar_result = None
-            print(f"\n{'='*60}")
-            print(f"DEBUG: Attempting to create calendar events")
-            print(f"DEBUG: Auth token present: {bool(self.auth_token)}")
-            print(f"DEBUG: API base URL: {self.api_base_url}")
-            print(f"DEBUG: Number of tasks to schedule: {len(scheduled_tasks)}")
-            print(f"{'='*60}\n")
-
             if self.auth_token:
                 try:
-                    url = f"{self.api_base_url}/api/calendar/create-events"
-                    print(f"DEBUG: Calling calendar API at: {url}")
-                    print(f"DEBUG: Sending tasks: {scheduled_tasks}")
-
                     async with httpx.AsyncClient() as client:
                         response = await client.post(
-                            url,
+                            f"{self.api_base_url}/api/calendar/create-events",
                             json={"tasks": scheduled_tasks},
                             headers={"Authorization": f"Bearer {self.auth_token}"},
                             timeout=30.0
                         )
 
-                        print(f"DEBUG: Calendar API response status: {response.status_code}")
-                        print(f"DEBUG: Calendar API response body: {response.text}")
-
                         if response.status_code == 200:
                             calendar_result = response.json()
-                            print(f"DEBUG: Successfully created {len(calendar_result.get('created_events', []))} calendar events")
                         else:
-                            print(f"ERROR: Calendar API error: {response.status_code} - {response.text}")
+                            print(f"Calendar API error: {response.status_code}")
                 except Exception as e:
-                    print(f"ERROR: Failed to create calendar events: {type(e).__name__}: {e}")
-                    import traceback
-                    traceback.print_exc()
-            else:
-                print("WARNING: No auth token available, skipping calendar event creation")
+                    print(f"Failed to create calendar events: {e}")
 
             return {
                 "success": True,
