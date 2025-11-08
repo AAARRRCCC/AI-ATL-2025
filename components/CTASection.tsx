@@ -83,7 +83,7 @@ export default function CTASection() {
             href="/auth"
             className="group px-8 py-4 bg-white text-purple-600 rounded-lg font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
           >
-            Start Free Trial
+            Get Started Now
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </a>
         </motion.div>

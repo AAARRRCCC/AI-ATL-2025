@@ -57,7 +57,7 @@ export function ChatInput({
   const isNearLimit = characterCount > maxChars * 0.8;
 
   return (
-    <div className="border-t border-gray-200 bg-white p-4">
+    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
       <div className="flex items-end gap-2">
         <div className="flex-1 relative">
           <textarea
@@ -69,13 +69,13 @@ export function ChatInput({
             disabled={disabled}
             rows={1}
             maxLength={maxChars}
-            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition-all text-gray-900 placeholder:text-gray-400"
+            className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 bg-white dark:bg-gray-700"
             style={{ minHeight: '48px', maxHeight: '120px' }}
           />
 
           {/* Character count */}
           {isNearLimit && (
-            <span className={`absolute bottom-2 right-3 text-xs ${characterCount >= maxChars ? 'text-red-500' : 'text-gray-400'}`}>
+            <span className={`absolute bottom-2 right-3 text-xs ${characterCount >= maxChars ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
               {characterCount}/{maxChars}
             </span>
           )}
@@ -84,16 +84,16 @@ export function ChatInput({
         <button
           onClick={handleSend}
           disabled={disabled || !message.trim()}
-          className="flex-shrink-0 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex-shrink-0 p-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           title="Send message (Enter)"
         >
           <Send className="h-5 w-5" />
         </button>
       </div>
 
-      <p className="text-xs text-gray-500 mt-2">
-        Press <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Enter</kbd> to send,{' '}
-        <kbd className="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Shift+Enter</kbd> for new line
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        Press <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Enter</kbd> to send,{' '}
+        <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Shift+Enter</kbd> for new line
       </p>
     </div>
   );

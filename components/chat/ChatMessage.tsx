@@ -19,13 +19,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {/* Avatar */}
       <div
         className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          isUser ? 'bg-blue-600' : 'bg-gray-200'
+          isUser ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'
         }`}
       >
         {isUser ? (
           <User className="w-5 h-5 text-white" />
         ) : (
-          <Bot className="w-5 h-5 text-gray-700" />
+          <Bot className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         )}
       </div>
 
@@ -34,8 +34,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div
           className={`px-4 py-2 rounded-lg ${
             isUser
-              ? 'bg-blue-600 text-white rounded-tr-none'
-              : 'bg-gray-100 text-gray-900 rounded-tl-none'
+              ? 'bg-blue-600 dark:bg-blue-500 text-white rounded-tr-none'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none'
           }`}
         >
           <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
@@ -43,7 +43,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
         {/* Function Calls Indicator */}
         {message.function_calls && message.function_calls.length > 0 && (
-          <div className="mt-1 px-2 py-1 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+          <div className="mt-1 px-2 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded text-xs text-green-700 dark:text-green-400">
             ✓ Executed {message.function_calls.length} action{message.function_calls.length > 1 ? 's' : ''}:
             {message.function_calls.map((call, idx) => (
               <span key={idx} className="ml-1 font-medium">
@@ -55,7 +55,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         {/* Timestamp */}
-        <span className="text-xs text-gray-500 mt-1">{timestamp}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">{timestamp}</span>
       </div>
     </div>
   );
