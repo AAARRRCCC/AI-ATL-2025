@@ -316,11 +316,10 @@ export default function PreferencesPage() {
                   key={day.value}
                   onClick={() => toggleDay(day.value)}
                   title={day.full}
-                  className={`flex-1 px-3 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 ${
-                    daysAvailable.includes(day.value)
-                      ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
+                  className={`flex-1 px-3 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 ${daysAvailable.includes(day.value)
+                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
                 >
                   {day.label}
                 </button>
@@ -392,7 +391,7 @@ export default function PreferencesPage() {
           {/* Work Session Length */}
           <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
                 <Timer className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -406,7 +405,7 @@ export default function PreferencesPage() {
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   {formatDuration(defaultWorkDuration)}
                 </span>
                 <input
@@ -434,8 +433,15 @@ export default function PreferencesPage() {
                 step="5"
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                 style={{
-                  background: `linear-gradient(to right, rgb(147 51 234) 0%, rgb(147 51 234) ${((defaultWorkDuration - 15) / (180 - 15)) * 100}%, rgb(229 231 235) ${((defaultWorkDuration - 15) / (180 - 15)) * 100}%, rgb(229 231 235) 100%)`
+                  background: `linear-gradient(
+                    to right,
+                    rgb(37 99 235) 0%,
+                    rgb(147 51 234) ${((defaultWorkDuration - 15) / (180 - 15)) * 100}%,
+                    rgb(229 231 235) ${((defaultWorkDuration - 15) / (180 - 15)) * 100}%,
+                    rgb(229 231 235) 100%
+                  )`
                 }}
+
               />
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>15 min</span>
@@ -470,11 +476,10 @@ export default function PreferencesPage() {
                       setProductivityPattern(pattern.value);
                       setHasUnsavedChanges(true);
                     }}
-                    className={`group relative p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${
-                      isSelected
-                        ? `border-transparent bg-gradient-to-br ${pattern.gradient} text-white shadow-lg`
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
+                    className={`group relative p-4 rounded-xl border-2 transition-all transform hover:scale-105 ${isSelected
+                      ? `border-transparent bg-gradient-to-br ${pattern.gradient} text-white shadow-lg`
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700/50 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <div className={`p-3 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-600'}`}>
@@ -558,11 +563,10 @@ export default function PreferencesPage() {
                 prioritySubjects.map((subject, index) => (
                   <div
                     key={index}
-                    className={`group flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all transform hover:scale-105 shadow-sm ${
-                      subject.needsMoreTime
-                        ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
-                        : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                    }`}
+                    className={`group flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all transform hover:scale-105 shadow-sm ${subject.needsMoreTime
+                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                      : 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                      }`}
                   >
                     {subject.needsMoreTime && <Star className="w-4 h-4" />}
                     <span>{subject.subject}</span>
