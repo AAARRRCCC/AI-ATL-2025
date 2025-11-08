@@ -83,11 +83,9 @@ Be supportive and help reduce procrastination through momentum, not punishment.
         # Initialize Gemini model with function calling
         self.model = genai.GenerativeModel(
             model_name='gemini-1.5-pro',
+            tools=AVAILABLE_FUNCTIONS,
             system_instruction=self.SYSTEM_INSTRUCTION
         )
-
-        # Store tools separately for chat sessions
-        self.tools = AVAILABLE_FUNCTIONS
 
     async def process_message(
         self,
@@ -119,11 +117,8 @@ Be supportive and help reduce procrastination through momentum, not punishment.
         # Start chat session with history
         chat = self.model.start_chat(history=gemini_history)
 
-        # Send user message with tools enabled
-        response = chat.send_message(
-            user_message,
-            tools=self.tools
-        )
+        # Send user message
+        response = chat.send_message(user_message)
 
         function_results = []
 
@@ -159,8 +154,7 @@ Be supportive and help reduce procrastination through momentum, not punishment.
                                     "response": result
                                 }
                             }]
-                        },
-                        tools=self.tools
+                        }
                     )
 
             if not has_function_call:
