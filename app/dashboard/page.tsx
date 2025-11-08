@@ -282,7 +282,7 @@ function DashboardContent() {
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 gap-4">
@@ -344,7 +344,7 @@ function DashboardContent() {
                 <li>• Tasks will be automatically scheduled</li>
               </ul>
             </motion.div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Calendar Section - Full Width Below */}
