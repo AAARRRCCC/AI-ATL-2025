@@ -26,7 +26,8 @@
       "Bash(npm run dev:*)",
       "Bash(npx next:*)",
       "Bash(timeout 30 npm run dev)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(move ARCHITECTURE.md DATABASE.md SETUP.md CALENDAR_INTEGRATION.md HACKATHON_MVP.md PROJECT_OVERVIEW.md docs/archive/)"
     ],
     "deny": [],
     "ask": []
