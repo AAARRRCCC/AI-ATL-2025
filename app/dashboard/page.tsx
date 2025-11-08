@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Settings } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { GoogleCalendarButton } from "@/components/GoogleCalendarButton";
 import { ChatContainer } from "@/components/chat/ChatContainer";
@@ -108,6 +108,14 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <ThemeToggle />
               <GoogleCalendarButton />
+
+              <button
+                onClick={() => router.push('/preferences')}
+                className="p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                title="Preferences"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
 
               <button
                 onClick={handleLogout}

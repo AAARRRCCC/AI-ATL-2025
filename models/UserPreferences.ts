@@ -18,6 +18,12 @@ export interface UserPreferences {
       end: string; // HH:MM format
     }[];
     daysAvailable: number[]; // 0-6 (Sunday-Saturday)
+    subjectStrengths: {
+      subject: string;
+      needsMoreTime: boolean; // true if user needs more time for this subject
+    }[];
+    productivityPattern: 'morning' | 'midday' | 'evening'; // preferred work time of day
+    assignmentDeadlineBuffer: number; // days before deadline to prefer scheduling work
   };
   calendarIntegration: {
     enabled: boolean;
@@ -46,6 +52,12 @@ export interface UserPreferencesResponse {
       end: string;
     }[];
     daysAvailable: number[];
+    subjectStrengths: {
+      subject: string;
+      needsMoreTime: boolean;
+    }[];
+    productivityPattern: 'morning' | 'midday' | 'evening';
+    assignmentDeadlineBuffer: number;
   };
   calendarIntegration: {
     enabled: boolean;
@@ -72,6 +84,12 @@ export interface UpdatePreferencesInput {
       end: string;
     }[];
     daysAvailable?: number[];
+    subjectStrengths?: {
+      subject: string;
+      needsMoreTime: boolean;
+    }[];
+    productivityPattern?: 'morning' | 'midday' | 'evening';
+    assignmentDeadlineBuffer?: number;
   };
   calendarIntegration?: {
     enabled?: boolean;
@@ -97,6 +115,9 @@ export const DEFAULT_USER_PREFERENCES: Omit<
     defaultBreakDuration: 10, // 10 minutes
     preferredStudyTimes: [],
     daysAvailable: [1, 2, 3, 4, 5], // Monday-Friday
+    subjectStrengths: [],
+    productivityPattern: 'midday',
+    assignmentDeadlineBuffer: 2, // 2 days before deadline
   },
   calendarIntegration: {
     enabled: false,
