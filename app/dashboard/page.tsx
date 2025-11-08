@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GraduationCap, Settings } from "lucide-react";
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 import { GoogleCalendarButton } from "@/components/GoogleCalendarButton";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -42,39 +42,39 @@ function DashboardContent() {
     setLoading(false);
 
     // Handle OAuth redirect params
-    const calendarConnected = searchParams.get('calendar_connected');
-    const error = searchParams.get('error');
+    const calendarConnected = searchParams.get("calendar_connected");
+    const error = searchParams.get("error");
 
-    if (calendarConnected === 'true') {
-      toast.success('Google Calendar connected successfully! 🎉');
+    if (calendarConnected === "true") {
+      toast.success("Google Calendar connected successfully! 🎉");
       // Update user data to reflect calendar connection
       fetchUserData(token);
       // Clean up URL
-      window.history.replaceState({}, '', '/dashboard');
-    } else if (error === 'oauth_denied') {
-      toast.error('Calendar connection was cancelled');
-      window.history.replaceState({}, '', '/dashboard');
-    } else if (error === 'oauth_failed') {
-      toast.error('Failed to connect Google Calendar. Please try again.');
-      window.history.replaceState({}, '', '/dashboard');
+      window.history.replaceState({}, "", "/dashboard");
+    } else if (error === "oauth_denied") {
+      toast.error("Calendar connection was cancelled");
+      window.history.replaceState({}, "", "/dashboard");
+    } else if (error === "oauth_failed") {
+      toast.error("Failed to connect Google Calendar. Please try again.");
+      window.history.replaceState({}, "", "/dashboard");
     }
   }, [router, searchParams]);
 
   const fetchUserData = async (token: string) => {
     try {
-      const response = await fetch('/api/auth/me', {
+      const response = await fetch("/api/auth/me", {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data);
-        localStorage.setItem('user', JSON.stringify(data));
+        localStorage.setItem("user", JSON.stringify(data));
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error("Error fetching user data:", error);
     }
   };
 
@@ -85,19 +85,22 @@ function DashboardContent() {
     setCountersLoading(true);
     try {
       const [assignmentsRes, sessionsRes] = await Promise.all([
-        fetch('/api/assignments/count', {
-          headers: { Authorization: `Bearer ${token}` }
+        fetch("/api/assignments/count", {
+          headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch('/api/tasks/count', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        fetch("/api/tasks/count", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       if (assignmentsRes.ok) {
         const assignments = await assignmentsRes.json();
         setAssignmentsCount(assignments.count);
       } else {
-        console.error('Failed to fetch assignments count:', assignmentsRes.status);
+        console.error(
+          "Failed to fetch assignments count:",
+          assignmentsRes.status,
+        );
         setAssignmentsCount(0);
       }
 
@@ -105,11 +108,11 @@ function DashboardContent() {
         const sessions = await sessionsRes.json();
         setSessionsCount(sessions.count);
       } else {
-        console.error('Failed to fetch sessions count:', sessionsRes.status);
+        console.error("Failed to fetch sessions count:", sessionsRes.status);
         setSessionsCount(0);
       }
     } catch (error) {
-      console.error('Failed to fetch counts:', error);
+      console.error("Failed to fetch counts:", error);
       setAssignmentsCount(0);
       setSessionsCount(0);
     } finally {
@@ -197,7 +200,7 @@ function DashboardContent() {
               <GoogleCalendarButton />
 
               <button
-                onClick={() => router.push('/preferences')}
+                onClick={() => router.push("/preferences")}
                 className="p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110 active:scale-95"
                 title="Preferences"
               >
@@ -238,9 +241,24 @@ function DashboardContent() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="lg:col-span-2"
+            /*
+              Make the chat input row flex, stretch items to the same height,
+              and keep the textarea from being manually resized while letting
+              it dictate the row height. The send button stretches to match.
+            */
+            className="
+              lg:col-span-2
+              [&_form]:flex
+              [&_form]:items-stretch
+              [&_form]:gap-3
+              [&_form>textarea]:resize-none
+              [&_form>button]:self-stretch
+            "
           >
-            <ChatContainer userId={user?._id || null} onDataChange={fetchCounts} />
+            <ChatContainer
+              userId={user?._id || null}
+              onDataChange={fetchCounts}
+            />
           </motion.div>
 
           {/* Sidebar - Takes 1 column */}
@@ -260,15 +278,25 @@ function DashboardContent() {
               </h2>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                  <p className="text-gray-900 dark:text-gray-100 text-sm">{user?.email}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Email
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 text-sm">
+                    {user?.email}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
-                  <p className="text-gray-900 dark:text-gray-100 text-sm">{user?.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Name
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 text-sm">
+                    {user?.name}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Member Since</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Member Since
+                  </p>
                   <p className="text-gray-900 dark:text-gray-100 text-sm">
                     {user?.createdAt
                       ? new Date(user.createdAt).toLocaleDateString()
@@ -276,9 +304,17 @@ function DashboardContent() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Calendar Status</p>
-                  <p className={`text-sm font-medium ${user?.googleAccessToken ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                    {user?.googleAccessToken ? '✓ Connected' : 'Not connected'}
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Calendar Status
+                  </p>
+                  <p
+                    className={`text-sm font-medium ${
+                      user?.googleAccessToken
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-gray-400 dark:text-gray-500"
+                    }`}
+                  >
+                    {user?.googleAccessToken ? "✓ Connected" : "Not connected"}
                   </p>
                 </div>
               </div>
@@ -301,7 +337,9 @@ function DashboardContent() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-2xl font-bold">{assignmentsCount ?? 0}</p>
+                    <p className="text-2xl font-bold">
+                      {assignmentsCount ?? 0}
+                    </p>
                     <p className="text-xs text-blue-100">Active assignments</p>
                   </>
                 )}
@@ -340,7 +378,7 @@ function DashboardContent() {
               <ul className="text-xs text-yellow-800 dark:text-yellow-300 space-y-1">
                 <li>• Connect your Google Calendar to schedule tasks</li>
                 <li>• Tell me about your assignments to get started</li>
-                <li>• I'll break them into manageable tasks</li>
+                <li>• I&apos;ll break them into manageable tasks</li>
                 <li>• Tasks will be automatically scheduled</li>
               </ul>
             </motion.div>
@@ -361,11 +399,13 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-900 dark:text-gray-400">Loading...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-gray-900 dark:text-gray-400">Loading...</div>
+        </div>
+      }
+    >
       <DashboardContent />
     </Suspense>
   );
