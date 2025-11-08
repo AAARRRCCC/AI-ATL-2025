@@ -95,6 +95,7 @@ async def websocket_chat(websocket: WebSocket):
         # TODO: Implement proper token verification
         # For now, accept user_id directly (NOT SECURE - implement auth later)
         user_id = auth_data.get("user_id")
+        auth_token = auth_data.get("token")
 
         if not user_id:
             await websocket.send_json({
@@ -104,8 +105,8 @@ async def websocket_chat(websocket: WebSocket):
             await websocket.close()
             return
 
-        # Initialize function executor with database
-        function_executor = FunctionExecutor(db, user_id)
+        # Initialize function executor with database and auth token
+        function_executor = FunctionExecutor(db, user_id, auth_token)
 
         # Load conversation history from database
         history = await db.get_chat_history(user_id, limit=20)

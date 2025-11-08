@@ -8,6 +8,8 @@ tasks, and calendar events.
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dateutil import parser
+import httpx
+import os
 
 
 class FunctionExecutor:
@@ -15,16 +17,19 @@ class FunctionExecutor:
     Executes AI function calls and interacts with database and external APIs.
     """
 
-    def __init__(self, db, user_id: str):
+    def __init__(self, db, user_id: str, auth_token: Optional[str] = None):
         """
         Initialize function executor.
 
         Args:
             db: Database connection instance
             user_id: User ID for operations
+            auth_token: Optional JWT token for API calls
         """
         self.db = db
         self.user_id = user_id
+        self.auth_token = auth_token
+        self.api_base_url = os.getenv("API_BASE_URL", "http://localhost:3000")
 
     async def create_assignment(
         self,
@@ -257,8 +262,7 @@ class FunctionExecutor:
             if not assignment:
                 return {"success": False, "error": "Assignment not found"}
 
-            # For now, create a simple schedule
-            # TODO: Integrate with Google Calendar API
+            # Create a schedule for the tasks
             scheduled_tasks = []
 
             start = datetime.now() if not start_date else parser.parse(start_date)
@@ -268,20 +272,41 @@ class FunctionExecutor:
                 duration_minutes = task["estimated_duration"]
 
                 scheduled_tasks.append({
-                    "task_id": task["_id"],
+                    "task_id": str(task["_id"]),
                     "title": task["title"],
                     "scheduled_start": current_time.isoformat(),
                     "scheduled_end": (current_time + timedelta(minutes=duration_minutes)).isoformat(),
-                    "duration_minutes": duration_minutes
+                    "duration_minutes": duration_minutes,
+                    "description": task.get("description", "")
                 })
 
                 # Move to next day for next task (simplified scheduling)
                 current_time += timedelta(days=1)
 
+            # Call Next.js API to create Google Calendar events
+            calendar_result = None
+            if self.auth_token:
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            f"{self.api_base_url}/api/calendar/create-events",
+                            json={"tasks": scheduled_tasks},
+                            headers={"Authorization": f"Bearer {self.auth_token}"},
+                            timeout=30.0
+                        )
+
+                        if response.status_code == 200:
+                            calendar_result = response.json()
+                        else:
+                            print(f"Calendar API error: {response.status_code} - {response.text}")
+                except Exception as e:
+                    print(f"Failed to create calendar events: {e}")
+
             return {
                 "success": True,
                 "scheduled_tasks": scheduled_tasks,
-                "message": f"Scheduled {len(scheduled_tasks)} tasks"
+                "calendar_events": calendar_result.get("created_events", []) if calendar_result else [],
+                "message": f"Scheduled {len(scheduled_tasks)} tasks and created {len(calendar_result.get('created_events', [])) if calendar_result else 0} calendar events"
             }
 
         except Exception as e:

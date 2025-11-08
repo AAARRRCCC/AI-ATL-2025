@@ -57,8 +57,12 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
         setError(null);
         reconnectAttemptsRef.current = 0;
 
-        // Send authentication
-        ws.send(JSON.stringify({ user_id: userId }));
+        // Send authentication with JWT token
+        const token = localStorage.getItem('token');
+        ws.send(JSON.stringify({
+          user_id: userId,
+          token: token
+        }));
       };
 
       ws.onmessage = (event) => {
