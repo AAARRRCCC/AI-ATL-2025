@@ -104,7 +104,7 @@ export function Calendar({
   );
 
   const eventStyleGetter = (event: CalendarEvent) => {
-    let backgroundColor = "rgba(59, 130, 246, 0.85)"; // Default blue with transparency
+    let backgroundColor = "rgba(59, 130, 246, 0.88)"; // Default blue with transparency
     let borderColor = "#3b82f6";
     let textColor = "#1e3a8a"; // Darker blue text for contrast
 
@@ -112,22 +112,32 @@ export function Calendar({
       // Color code by phase with vibrant, translucent colors
       switch (event.phase) {
         case "Research":
-          backgroundColor = "rgba(59, 130, 246, 0.85)"; // Blue
-          borderColor = "#3b82f6";
+          backgroundColor = "rgba(59, 130, 246, 0.88)"; // Vibrant Blue
+          borderColor = "#2563eb";
           textColor = "#1e3a8a";
           break;
         case "Drafting":
-          backgroundColor = "rgba(139, 92, 246, 0.85)"; // Purple
-          borderColor = "#8b5cf6";
-          textColor = "#4c1d95";
+          backgroundColor = "rgba(168, 85, 247, 0.88)"; // Vibrant Purple
+          borderColor = "#a855f7";
+          textColor = "#581c87";
           break;
         case "Revision":
-          backgroundColor = "rgba(34, 197, 94, 0.85)"; // Green
-          borderColor = "#22c55e";
+          backgroundColor = "rgba(34, 197, 94, 0.88)"; // Vibrant Green
+          borderColor = "#16a34a";
           textColor = "#14532d";
           break;
+        case "Editing":
+          backgroundColor = "rgba(234, 179, 8, 0.88)"; // Vibrant Yellow
+          borderColor = "#ca8a04";
+          textColor = "#713f12";
+          break;
+        case "Final Review":
+          backgroundColor = "rgba(239, 68, 68, 0.88)"; // Vibrant Red
+          borderColor = "#dc2626";
+          textColor = "#7f1d1d";
+          break;
         default:
-          backgroundColor = "rgba(99, 102, 241, 0.85)"; // Indigo
+          backgroundColor = "rgba(99, 102, 241, 0.88)"; // Indigo
           borderColor = "#6366f1";
           textColor = "#312e81";
       }
@@ -136,32 +146,32 @@ export function Calendar({
       if (event.status === "completed") {
         return {
           style: {
-            background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.85', '0.7')})`,
-            borderLeft: `3px solid ${borderColor}`,
+            background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.88', '0.72')})`,
+            borderLeft: `4px solid ${borderColor}`,
             borderRadius: "8px",
             color: textColor,
             fontWeight: 600,
             opacity: 0.7,
-            backdropFilter: "blur(4px)",
+            backdropFilter: "blur(6px)",
           },
         };
       }
     } else {
-      // Google Calendar events (not Study Autopilot) - colorful gradient
-      backgroundColor = "rgba(156, 163, 175, 0.85)"; // Gray
-      borderColor = "#6b7280";
-      textColor = "#1f2937";
+      // Google Calendar events (not Study Autopilot) - subtle grey
+      backgroundColor = "rgba(148, 163, 184, 0.88)"; // Slate gray
+      borderColor = "#64748b";
+      textColor = "#1e293b";
     }
 
     return {
       style: {
-        background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.85', '0.7')})`,
-        borderLeft: `3px solid ${borderColor}`,
+        background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.88', '0.72')})`,
+        borderLeft: `4px solid ${borderColor}`,
         borderRadius: "8px",
         color: textColor,
         fontWeight: 600,
-        backdropFilter: "blur(4px)",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+        backdropFilter: "blur(6px)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
       },
     };
   };
@@ -343,7 +353,7 @@ export function Calendar({
 
         /* Month view headers - larger to prevent text cutoff */
         .rbc-month-view .rbc-header {
-          padding: 16px 8px;
+          padding: 18px 8px;
           font-size: 12px;
         }
 
@@ -388,15 +398,17 @@ export function Calendar({
           flex: 1;
         }
 
-        /* Time header gutter - empty space above time labels - match header grey */
+        /* Time header gutter - empty space above time labels - match time gutter grey */
         .rbc-time-header-gutter {
           background: #f9fafb !important;
           border-bottom: 1px solid #e5e7eb !important;
+          border-right: 1px solid #e5e7eb !important;
         }
 
         .dark .rbc-time-header-gutter {
           background: #1f2937 !important;
           border-bottom-color: #4b5563 !important;
+          border-right-color: #4b5563 !important;
         }
 
         .rbc-allday-cell {
