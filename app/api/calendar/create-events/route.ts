@@ -46,15 +46,22 @@ export async function POST(request: NextRequest) {
 
     for (const task of tasks) {
       try {
-        const eventData = {
-          title: task.title,
-          description: task.description || "",
-          startTime: new Date(task.scheduled_start),
-          endTime: new Date(task.scheduled_end),
-          taskId: task.task_id,
-        };
+        const startTime = new Date(task.scheduled_start);
+        const endTime = new Date(task.scheduled_end);
 
-        const event = await createStudyEvent(payload.userId, eventData);
+        // Validate dates
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+          throw new Error(`Invalid date format: start=${task.scheduled_start}, end=${task.scheduled_end}`);
+        }
+
+        const event = await createStudyEvent(
+          payload.userId,
+          task.title,
+          task.description || "",
+          startTime,
+          endTime,
+          task.task_id
+        );
 
         createdEvents.push({
           task_id: task.task_id,
