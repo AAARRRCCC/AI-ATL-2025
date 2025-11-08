@@ -166,8 +166,7 @@ export function Calendar({
     return (
       <div
         onClick={handleClick}
-        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors p-3 h-full flex items-center justify-center"
-        style={{ background: '#f9fafb' }}
+        className="cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors p-3 h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"
       >
         <div className="text-center">
           <div className={`text-xs font-semibold tracking-wide mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
@@ -337,6 +336,11 @@ export function Calendar({
 
         .dark .rbc-time-view .rbc-header {
           background: #1f2937;
+        }
+
+        /* Override for custom header components */
+        .rbc-time-view .rbc-header > div {
+          background: inherit;
         }
 
         /* Remove gap between headers and time content in week/day view */
@@ -529,9 +533,9 @@ export function Calendar({
           color: #9ca3af;
         }
 
-        /* Ensure time slot containers are properly sized */
+        /* Ensure time slot containers are properly sized - double height for one hour */
         .rbc-timeslot-group {
-          min-height: 48px;
+          min-height: 96px;
           border-bottom: 1px solid #e5e7eb;
         }
 
@@ -546,6 +550,11 @@ export function Calendar({
         /* Time gutter width */
         .rbc-time-gutter {
           width: 80px;
+        }
+
+        /* Individual time slots within group */
+        .rbc-time-slot {
+          min-height: 48px;
         }
 
         /* Current time indicator - Clean and simple */
@@ -638,11 +647,11 @@ export function Calendar({
           }
         }
 
-        /* Month view specific - Ultra clean Notion style */
+        /* Month view specific - rounded corners */
         .rbc-month-view {
           border: none;
-          border-radius: 0;
-          overflow: visible;
+          border-radius: 12px;
+          overflow: hidden;
           box-shadow: none;
         }
 
@@ -694,11 +703,11 @@ export function Calendar({
           background-color: #1a1d21;
         }
 
-        /* Week/Day view specific - Ultra clean like Notion */
+        /* Week/Day view specific - rounded corners */
         .rbc-time-view {
           border: none;
-          border-radius: 0;
-          overflow: visible;
+          border-radius: 12px;
+          overflow: hidden;
           box-shadow: none;
           background: transparent;
         }
@@ -707,13 +716,20 @@ export function Calendar({
           background: transparent;
         }
 
-        /* Add subtle container background */
+        /* Add subtle container background with rounded corners */
         .rbc-time-content {
           background: white;
+          border-radius: 0 0 12px 12px;
         }
 
         .dark .rbc-time-content {
           background: #111827;
+        }
+
+        /* Time header with rounded top corners */
+        .rbc-time-header {
+          border-radius: 12px 12px 0 0;
+          overflow: hidden;
         }
 
         /* Time content scrollable area */
