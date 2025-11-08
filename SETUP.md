@@ -13,8 +13,9 @@ Before you begin, ensure you have these installed on your Windows machine:
    - Recommended: v22.21.0 (LTS)
    - Verify installation: `node --version`
 
-2. **Python** (v3.10 or higher)
+2. **Python** (v3.11 or v3.12 RECOMMENDED)
    - Download from: https://python.org/
+   - ⚠️ **IMPORTANT**: Use Python 3.11 or 3.12 - Python 3.14 has compatibility issues
    - ⚠️ Make sure to check "Add Python to PATH" during installation
    - Verify installation: `python --version`
 

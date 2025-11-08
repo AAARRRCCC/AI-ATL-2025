@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { extractTokenFromHeader, verifyToken } from "@/lib/auth";
-import { getDb } from "@/lib/mongodb";
-import { USERS_COLLECTION } from "@/models/User";
-import { ObjectId } from "mongodb";
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,

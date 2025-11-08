@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { getDb } from "./mongodb";
+import { getDatabase } from "./mongodb";
 import { USERS_COLLECTION, User } from "@/models/User";
 import { ObjectId } from "mongodb";
 
@@ -13,7 +13,7 @@ const oauth2Client = new google.auth.OAuth2(
  * Get authenticated Google Calendar client for a specific user
  */
 export async function getCalendarClient(userId: string) {
-  const db = await getDb();
+  const db = await getDatabase();
   const usersCollection = db.collection<User>(USERS_COLLECTION);
 
   const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
