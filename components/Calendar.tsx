@@ -22,8 +22,6 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-const DragAndDropCalendar = withDragAndDrop(BigCalendar);
-
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -35,6 +33,8 @@ export interface CalendarEvent {
   status?: "pending" | "in_progress" | "completed";
   googleEventId?: string;
 }
+
+const DragAndDropCalendar = withDragAndDrop<CalendarEvent>(BigCalendar);
 
 interface CalendarProps {
   events?: CalendarEvent[];

@@ -87,16 +87,6 @@ export default function CTASection() {
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </a>
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-8 text-white/70 text-sm"
-        >
-          No credit card required • Free forever plan available • Cancel anytime
-        </motion.p>
       </div>
     </section>
   );
