@@ -6,6 +6,7 @@ import {
   USER_PREFERENCES_COLLECTION,
   toUserPreferencesResponse,
   UpdatePreferencesInput,
+  DEFAULT_USER_PREFERENCES,
 } from '@/models/UserPreferences';
 import { ObjectId } from 'mongodb';
 
@@ -47,7 +48,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const preferencesResponse = toUserPreferencesResponse(preferences);
+    // Merge with defaults to ensure all fields are present
+    const mergedPreferences: UserPreferences = {
+      ...preferences,
+      studySettings: {
+        ...DEFAULT_USER_PREFERENCES.studySettings,
+        ...preferences.studySettings,
+      },
+      notifications: {
+        ...DEFAULT_USER_PREFERENCES.notifications,
+        ...preferences.notifications,
+      },
+      calendarIntegration: {
+        ...DEFAULT_USER_PREFERENCES.calendarIntegration,
+        ...preferences.calendarIntegration,
+      },
+    };
+
+    const preferencesResponse = toUserPreferencesResponse(mergedPreferences);
     return NextResponse.json(preferencesResponse, { status: 200 });
   } catch (error) {
     console.error('Get preferences error:', error);

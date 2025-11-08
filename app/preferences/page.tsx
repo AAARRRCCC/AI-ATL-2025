@@ -17,14 +17,14 @@ interface PreferredStudyTime {
 }
 
 interface Preferences {
-  studySettings: {
-    defaultWorkDuration: number;
-    defaultBreakDuration: number;
-    preferredStudyTimes: PreferredStudyTime[];
-    daysAvailable: number[];
-    subjectStrengths: SubjectStrength[];
-    productivityPattern: 'morning' | 'midday' | 'evening';
-    assignmentDeadlineBuffer: number;
+  studySettings?: {
+    defaultWorkDuration?: number;
+    defaultBreakDuration?: number;
+    preferredStudyTimes?: PreferredStudyTime[];
+    daysAvailable?: number[];
+    subjectStrengths?: SubjectStrength[];
+    productivityPattern?: 'morning' | 'midday' | 'evening';
+    assignmentDeadlineBuffer?: number;
   };
 }
 
@@ -76,12 +76,13 @@ export default function PreferencesPage() {
 
       if (response.ok) {
         const data: Preferences = await response.json();
-        setDaysAvailable(data.studySettings.daysAvailable);
-        setPreferredStudyTimes(data.studySettings.preferredStudyTimes);
-        setDefaultWorkDuration(data.studySettings.defaultWorkDuration);
-        setSubjectStrengths(data.studySettings.subjectStrengths);
-        setProductivityPattern(data.studySettings.productivityPattern);
-        setAssignmentDeadlineBuffer(data.studySettings.assignmentDeadlineBuffer);
+        // Use fallback values for potentially missing fields
+        setDaysAvailable(data.studySettings?.daysAvailable || [1, 2, 3, 4, 5]);
+        setPreferredStudyTimes(data.studySettings?.preferredStudyTimes || []);
+        setDefaultWorkDuration(data.studySettings?.defaultWorkDuration || 50);
+        setSubjectStrengths(data.studySettings?.subjectStrengths || []);
+        setProductivityPattern(data.studySettings?.productivityPattern || 'midday');
+        setAssignmentDeadlineBuffer(data.studySettings?.assignmentDeadlineBuffer || 2);
       } else {
         toast.error('Failed to load preferences');
       }
