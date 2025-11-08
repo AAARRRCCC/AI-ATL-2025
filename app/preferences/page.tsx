@@ -84,11 +84,13 @@ export default function PreferencesPage() {
         setProductivityPattern(data.studySettings?.productivityPattern || 'midday');
         setAssignmentDeadlineBuffer(data.studySettings?.assignmentDeadlineBuffer || 2);
       } else {
-        toast.error('Failed to load preferences');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to load preferences:', response.status, errorData);
+        toast.error(`Failed to load preferences: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error fetching preferences:', error);
-      toast.error('Failed to load preferences');
+      toast.error('Failed to load preferences: Network error');
     } finally {
       setLoading(false);
     }
@@ -124,11 +126,13 @@ export default function PreferencesPage() {
       if (response.ok) {
         toast.success('Preferences saved successfully!');
       } else {
-        toast.error('Failed to save preferences');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to save preferences:', response.status, errorData);
+        toast.error(`Failed to save preferences: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error saving preferences:', error);
-      toast.error('Failed to save preferences');
+      toast.error('Failed to save preferences: Network error');
     } finally {
       setSaving(false);
     }

@@ -37,15 +37,23 @@ export async function GET(request: NextRequest) {
     const preferencesCollection = db.collection<UserPreferences>(
       USER_PREFERENCES_COLLECTION
     );
-    const preferences = await preferencesCollection.findOne({
+    let preferences = await preferencesCollection.findOne({
       userId: new ObjectId(payload.userId),
     });
 
+    // If preferences don't exist, create them (for old users)
     if (!preferences) {
-      return NextResponse.json(
-        { error: 'Preferences not found' },
-        { status: 404 }
-      );
+      console.log(`Creating default preferences for user: ${payload.userId}`);
+      const now = new Date();
+      const newPreferences: UserPreferences = {
+        ...DEFAULT_USER_PREFERENCES,
+        userId: new ObjectId(payload.userId),
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await preferencesCollection.insertOne(newPreferences);
+      preferences = newPreferences;
     }
 
     // Merge with defaults to ensure all fields are present
