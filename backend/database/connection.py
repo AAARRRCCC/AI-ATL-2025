@@ -127,6 +127,20 @@ class Database:
             {"$set": updates}
         )
 
+    # ==================== USER PREFERENCES OPERATIONS ====================
+
+    async def get_user_preferences(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get user preferences by user ID.
+
+        Args:
+            user_id: User's ID
+
+        Returns:
+            User preferences document or None if not found
+        """
+        return await self.db.user_preferences.find_one({"userId": ObjectId(user_id)})
+
     # ==================== ASSIGNMENT OPERATIONS ====================
 
     async def create_assignment(
