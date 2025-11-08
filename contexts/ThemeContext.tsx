@@ -16,6 +16,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Disable transitions on page load
+    document.documentElement.classList.add('no-transition');
+
     setMounted(true);
     // Check localStorage first, then system preference
     const storedTheme = localStorage.getItem('theme') as Theme | null;
@@ -26,6 +29,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setTheme('dark');
       document.documentElement.classList.add('dark');
     }
+
+    // Re-enable transitions after a short delay
+    setTimeout(() => {
+      document.documentElement.classList.remove('no-transition');
+    }, 100);
   }, []);
 
   const toggleTheme = () => {
