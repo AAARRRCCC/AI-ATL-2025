@@ -403,6 +403,7 @@ export function Calendar({
           background: #f9fafb !important;
           border-bottom: 1px solid #e5e7eb !important;
           border-right: 1px solid #e5e7eb !important;
+          padding-top: 62px;
         }
 
         .dark .rbc-time-header-gutter {
@@ -843,6 +844,10 @@ export function Calendar({
 
         .rbc-row-segment {
           padding: 2px 4px;
+        }
+
+        .rbc-time-gutter .rbc-label {
+          margin-top: -14px; /* same idea, just shifts position */
         }
       `}</style>
       <DndProvider backend={HTML5Backend}>
