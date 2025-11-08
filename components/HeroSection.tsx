@@ -55,12 +55,12 @@ export default function HeroSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
         >
-          <button className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-200">
+          <a
+            href="/auth"
+            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-200 inline-block text-center"
+          >
             Get Started Free
-          </button>
-          <button className="px-8 py-4 bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg font-semibold text-lg border-2 border-gray-300 dark:border-gray-700 hover:border-purple-600 dark:hover:border-purple-400 hover:shadow-xl transition-all duration-200">
-            Watch Demo
-          </button>
+          </a>
         </motion.div>
 
         {/* Feature Icons */}

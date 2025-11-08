@@ -1,4 +1,4 @@
-import { GraduationCap, Github, Twitter, Mail } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -41,11 +41,6 @@ export default function Footer() {
                   How It Works
                 </a>
               </li>
-              <li>
-                <a href="#" className="hover:text-white transition-colors">
-                  Demo
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -78,32 +73,10 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="pt-8 border-t border-gray-800 text-center">
           <p className="text-gray-400 text-sm">
             © 2024 Study Autopilot. All rights reserved.
           </p>
-
-          {/* Social Links */}
-          <div className="flex gap-4">
-            <a
-              href="#"
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <Github className="w-5 h-5" />
-            </a>
-            <a
-              href="#"
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <Twitter className="w-5 h-5" />
-            </a>
-            <a
-              href="#"
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-            >
-              <Mail className="w-5 h-5" />
-            </a>
-          </div>
         </div>
       </div>
     </footer>
