@@ -47,3 +47,7 @@ next-env.d.ts
 
 venv/
 __pycache__/
+
+.claude*
+.claude/
+NUL
