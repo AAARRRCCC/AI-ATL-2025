@@ -78,8 +78,43 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
   };
 
   const handleDisconnect = async () => {
-    // TODO: Implement disconnect functionality in Phase 2
-    toast('Disconnect feature coming soon!', { icon: '🚧' });
+    if (!confirm('Are you sure you want to disconnect your Google Calendar? You can reconnect at any time.')) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please log in first');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/auth/google/disconnect', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to disconnect calendar');
+      }
+
+      // Update local state
+      setIsConnected(false);
+      toast.success('Google Calendar disconnected successfully');
+
+      // Refresh the page to update user data in localStorage
+      window.location.reload();
+    } catch (error) {
+      console.error('Error disconnecting calendar:', error);
+      toast.error('Failed to disconnect Google Calendar');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isCheckingStatus) {
