@@ -329,7 +329,6 @@ export function Calendar({
         /* Modern Calendar Styles */
         .rbc-calendar {
           font-family: inherit;
-          background: transparent;
         }
 
         /* Header Styling - Match month view with grey background */
@@ -382,6 +381,7 @@ export function Calendar({
 
         .dark .rbc-time-header {
           border-bottom-color: #374151;
+          background: #1f2937;
         }
 
         .rbc-time-header-content {
