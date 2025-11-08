@@ -79,13 +79,13 @@ export default function CTASection() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
-          <button className="group px-8 py-4 bg-white text-purple-600 rounded-lg font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2">
+          <a
+            href="/auth"
+            className="group px-8 py-4 bg-white text-purple-600 rounded-lg font-semibold text-lg hover:shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
+          >
             Start Free Trial
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button className="px-8 py-4 bg-transparent text-white rounded-lg font-semibold text-lg border-2 border-white/50 hover:bg-white/10 hover:border-white transition-all duration-200">
-            Schedule a Demo
-          </button>
+          </a>
         </motion.div>
 
         <motion.p
