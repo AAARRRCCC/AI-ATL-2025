@@ -11,7 +11,7 @@ FastAPI backend with Google Gemini AI integration for intelligent assignment bre
 
 ## Prerequisites
 
-- Python 3.9 or higher
+- Python 3.12 (recommended for compatibility)
 - MongoDB Atlas account (free tier available)
 - Google Gemini API key (free for development)
 
