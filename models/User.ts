@@ -21,6 +21,10 @@ export interface UserResponse {
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
+  // Google OAuth tokens for calendar integration
+  googleAccessToken?: string;
+  googleRefreshToken?: string;
+  googleTokenExpiry?: Date;
 }
 
 export interface CreateUserInput {
@@ -48,6 +52,9 @@ export function toUserResponse(user: User): UserResponse {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     lastLogin: user.lastLogin,
+    googleAccessToken: user.googleAccessToken,
+    googleRefreshToken: user.googleRefreshToken,
+    googleTokenExpiry: user.googleTokenExpiry,
   };
 }
 

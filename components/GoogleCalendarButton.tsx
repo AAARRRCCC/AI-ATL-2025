@@ -35,7 +35,7 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
       if (response.ok) {
         const data = await response.json();
         // Check if user has Google Calendar tokens
-        setIsConnected(!!data.user?.googleAccessToken);
+        setIsConnected(!!data.googleAccessToken);
       }
     } catch (error) {
       console.error('Error checking calendar status:', error);

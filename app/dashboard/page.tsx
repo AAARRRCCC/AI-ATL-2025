@@ -64,8 +64,8 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data);
+        localStorage.setItem('user', JSON.stringify(data));
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
