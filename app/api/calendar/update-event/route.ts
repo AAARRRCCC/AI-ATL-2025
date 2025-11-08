@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractTokenFromHeader, verifyToken } from "@/lib/auth";
 import { updateCalendarEvent } from "@/lib/google-calendar";
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
     // Authenticate with JWT
     const authHeader = request.headers.get("authorization");
