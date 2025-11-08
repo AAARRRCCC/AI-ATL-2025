@@ -161,6 +161,20 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
         throw new Error("No authentication token found");
       }
 
+      // Create temporary event for optimistic update
+      const tempId = `temp-${Date.now()}`;
+      const tempEvent: CalendarEvent = {
+        id: tempId,
+        title,
+        description,
+        start,
+        end,
+        isStudyAutopilot: false,
+      };
+
+      // Optimistically add to UI
+      setEvents((prevEvents) => [...prevEvents, tempEvent]);
+
       const response = await fetch("/api/calendar/create-event", {
         method: "POST",
         headers: {
@@ -182,10 +196,27 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
         throw new Error(data.error || "Failed to create event");
       }
 
-      // Refresh events to show the new one
-      await fetchEvents(false);
+      const result = await response.json();
+
+      // Replace temp event with real event from server
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === tempId
+            ? {
+                id: result.event.id,
+                title: result.event.summary || title,
+                start,
+                end,
+                description,
+                isStudyAutopilot: false,
+              }
+            : event
+        )
+      );
     } catch (err: any) {
       console.error("Error creating event:", err);
+      // Remove the temporary event on error
+      setEvents((prevEvents) => prevEvents.filter((event) => !event.id.startsWith("temp-")));
       throw err; // Re-throw so modal can show error
     }
   };
@@ -197,24 +228,25 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch("/api/calendar/delete-event", {
+      // Optimistically remove from UI
+      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
+
+      const response = await fetch(`/api/calendar/delete-event?eventId=${encodeURIComponent(eventId)}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ eventId }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete event");
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete event");
       }
-
-      // Remove event from state
-      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
     } catch (err: any) {
       console.error("Error deleting event:", err);
       setError(err.message || "Failed to delete event");
+      // Revert on error
+      await fetchEvents(false);
     }
   };
 

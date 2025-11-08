@@ -7,6 +7,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { useState, useCallback, useEffect } from "react";
+import { AgendaView } from "./AgendaView";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
@@ -51,7 +52,7 @@ export function Calendar({
   onEventClick,
   onSelectSlot,
 }: CalendarProps) {
-  const [view, setView] = useState<View>("week");
+  const [view, setView] = useState<View | "agenda">("week");
   const [date, setDate] = useState(new Date());
 
   const handleEventDrop = useCallback(
@@ -138,6 +139,33 @@ export function Calendar({
     };
   };
 
+  // If agenda view is selected, render custom agenda
+  if (view === "agenda") {
+    return (
+      <div className="h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4">
+        {/* Custom view selector for agenda */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex gap-2">
+            {["month", "week", "day", "agenda"].map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v as View | "agenda")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  view === v
+                    ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
+                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
+              >
+                {v.charAt(0).toUpperCase() + v.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <AgendaView events={events} onEventClick={onEventClick} />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4">
       <style jsx global>{`
@@ -206,17 +234,22 @@ export function Calendar({
           transform: scale(1.03);
         }
 
-        /* Time grid - Cleaner appearance */
+        /* Time grid - Minimal clean appearance */
         .rbc-day-slot .rbc-time-slot {
-          border-top: 1px solid #f3f4f6;
+          border-top: none;
         }
 
-        .dark .rbc-day-slot .rbc-time-slot {
+        /* Show only hour markers, not every 30-minute slot */
+        .rbc-day-slot .rbc-time-slot:nth-child(2n) {
+          border-top: 1px solid #f9fafb;
+        }
+
+        .dark .rbc-day-slot .rbc-time-slot:nth-child(2n) {
           border-top-color: #1f2937;
         }
 
         .rbc-time-content {
-          border-top: 2px solid #e5e7eb;
+          border-top: 1px solid #e5e7eb;
         }
 
         .dark .rbc-time-content {
@@ -224,11 +257,20 @@ export function Calendar({
         }
 
         .rbc-time-header-content {
+          border-left: none;
+        }
+
+        /* Subtle dividers between days */
+        .rbc-time-column {
           border-left: 1px solid #f3f4f6;
         }
 
-        .dark .rbc-time-header-content {
-          border-left-color: #374151;
+        .dark .rbc-time-column {
+          border-left-color: #1f2937;
+        }
+
+        .rbc-time-column:first-child {
+          border-left: none;
         }
 
         /* Time labels - More subtle */
@@ -274,7 +316,7 @@ export function Calendar({
 
         .rbc-toolbar button {
           padding: 10px 18px;
-          border: 2px solid #e5e7eb;
+          border: 1px solid #e5e7eb;
           background-color: white;
           color: #374151;
           border-radius: 10px;
@@ -282,7 +324,7 @@ export function Calendar({
           font-size: 14px;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: pointer;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .dark .rbc-toolbar button {
@@ -294,8 +336,7 @@ export function Calendar({
         .rbc-toolbar button:hover {
           background-color: #f9fafb;
           border-color: #d1d5db;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .dark .rbc-toolbar button:hover {
@@ -330,10 +371,10 @@ export function Calendar({
 
         /* Month view specific */
         .rbc-month-view {
-          border: 2px solid #e5e7eb;
+          border: 1px solid #e5e7eb;
           border-radius: 12px;
           overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
 
         .dark .rbc-month-view {
@@ -341,11 +382,20 @@ export function Calendar({
         }
 
         .rbc-month-row {
-          border-top: 1px solid #f3f4f6;
+          border-top: 1px solid #f9fafb;
         }
 
         .dark .rbc-month-row {
           border-top-color: #1f2937;
+        }
+
+        /* Reduce cell borders in month view */
+        .rbc-day-bg + .rbc-day-bg {
+          border-left: 1px solid #f9fafb;
+        }
+
+        .dark .rbc-day-bg + .rbc-day-bg {
+          border-left-color: #1f2937;
         }
 
         .rbc-day-bg {
@@ -362,14 +412,25 @@ export function Calendar({
 
         /* Week/Day view specific */
         .rbc-time-view {
-          border: 2px solid #e5e7eb;
+          border: 1px solid #e5e7eb;
           border-radius: 12px;
           overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+          background: white;
         }
 
         .dark .rbc-time-view {
           border-color: #374151;
+          background: #1f2937;
+        }
+
+        /* Remove inner borders from time gutter */
+        .rbc-time-slot.rbc-time-gutter {
+          border-right: 1px solid #f3f4f6;
+        }
+
+        .dark .rbc-time-slot.rbc-time-gutter {
+          border-right-color: #1f2937;
         }
 
         /* Smooth animations */
@@ -440,14 +501,24 @@ export function Calendar({
         }
       `}</style>
       <DndProvider backend={HTML5Backend}>
+        {/* Custom Agenda button */}
+        <div className="mb-4">
+          <button
+            onClick={() => setView("agenda")}
+            className="px-4 py-2 rounded-lg font-medium text-sm transition-all bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
+          >
+            📋 Agenda View
+          </button>
+        </div>
         <DragAndDropCalendar
           localizer={localizer}
           events={events}
           startAccessor="start"
           endAccessor="end"
           titleAccessor="title"
-          view={view}
-          onView={setView}
+          view={view as View}
+          onView={(v) => setView(v as View | "agenda")}
+          views={["month", "week", "day"]}
           date={date}
           onNavigate={setDate}
           onEventDrop={handleEventDrop}
