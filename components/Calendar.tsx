@@ -54,18 +54,34 @@ export function Calendar({
 }: CalendarProps) {
   const [view, setView] = useState<View | "agenda">("week");
   const [date, setDate] = useState(new Date());
-  const [preserveDate, setPreserveDate] = useState(false);
+  const [shouldDefaultToToday, setShouldDefaultToToday] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // When switching to day view, default to today unless preserving a date
+  // When switching to day view via toolbar button, default to today
   useEffect(() => {
-    if (view === "day" && !preserveDate) {
+    if (view === "day" && shouldDefaultToToday) {
       setDate(new Date());
+      setShouldDefaultToToday(false);
     }
-    // Reset preserve flag after switching
-    if (preserveDate) {
-      setPreserveDate(false);
-    }
-  }, [view, preserveDate]);
+  }, [view, shouldDefaultToToday]);
+
+  // Handle view change from toolbar with fade transition
+  const handleViewChange = (newView: View | "agenda") => {
+    if (newView === view) return; // Don't transition if same view
+
+    setIsTransitioning(true);
+
+    // Fade out, then change view, then fade in
+    setTimeout(() => {
+      if (newView === "day") {
+        setShouldDefaultToToday(true);
+      }
+      setView(newView);
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 150); // Half of the total transition time
+    }, 150);
+  };
 
   const handleEventDrop = useCallback(
     ({ event, start, end }: any) => {
@@ -186,7 +202,8 @@ export function Calendar({
     const shouldHighlight = isToday && view !== 'day';
 
     const handleClick = () => {
-      setPreserveDate(true);
+      // When clicking a date header, navigate to that specific date in day view
+      // Don't use handleViewChange because we want to preserve the clicked date
       setDate(headerDate);
       setView('day');
     };
@@ -230,7 +247,7 @@ export function Calendar({
               key={v}
               type="button"
               className={view === v ? "rbc-active" : ""}
-              onClick={() => setView(v as View | "agenda")}
+              onClick={() => handleViewChange(v as View | "agenda")}
             >
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
@@ -243,7 +260,11 @@ export function Calendar({
   // If agenda view is selected, render custom agenda with integrated toolbar
   if (view === "agenda") {
     return (
-      <div className="h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4">
+      <div
+        className={`h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4 transition-opacity duration-300 ${
+          isTransitioning ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         <style jsx global>{`
           /* Toolbar - Modern button styling */
           .rbc-toolbar {
@@ -324,7 +345,11 @@ export function Calendar({
   }
 
   return (
-    <div className="h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4">
+    <div
+      className={`h-full w-full bg-white dark:bg-gray-900 rounded-xl p-4 transition-opacity duration-300 ${
+        isTransitioning ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
       <style jsx global>{`
         /* Modern Calendar Styles */
         .rbc-calendar {
@@ -793,7 +818,7 @@ export function Calendar({
         }
 
         .rbc-date-cell > a {
-          color: #9ca3af;
+          color: #4b5563;
           font-weight: 500;
           font-size: 12px;
           transition: color 0.15s ease;
@@ -803,7 +828,7 @@ export function Calendar({
         }
 
         .dark .rbc-date-cell > a {
-          color: #6b7280;
+          color: #9ca3af;
         }
 
         .rbc-date-cell > a:hover {
