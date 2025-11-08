@@ -323,7 +323,7 @@ export default function AuthPage() {
                 : "Already have an account? Sign in"}
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Back to home link */}
         <div className="mt-6 text-center">
@@ -334,7 +334,7 @@ export default function AuthPage() {
             ← Back to Home
           </Link>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
