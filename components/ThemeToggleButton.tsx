@@ -11,8 +11,18 @@ export function ThemeToggleButton({ className = '' }: { className?: string }) {
     }, []);
 
     useEffect(() => {
-        document.documentElement.classList.toggle('dark', theme === 'dark');
-        localStorage.setItem('theme', theme);
+        // Use View Transitions API for smooth, performant theme switching
+        const updateTheme = () => {
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+            localStorage.setItem('theme', theme);
+        };
+
+        if ('startViewTransition' in document) {
+            (document as any).startViewTransition(updateTheme);
+        } else {
+            // Instant switch for browsers without View Transitions API support
+            updateTheme();
+        }
     }, [theme]);
 
     return (

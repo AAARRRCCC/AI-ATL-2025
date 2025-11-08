@@ -37,9 +37,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+
+    // Use View Transitions API for smooth, performant theme switching
+    // Falls back to instant switching (no laggy transitions) in unsupported browsers
+    const updateTheme = () => {
+      setTheme(newTheme);
+      localStorage.setItem('theme', newTheme);
+      document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    };
+
+    if ('startViewTransition' in document) {
+      (document as any).startViewTransition(updateTheme);
+    } else {
+      // Instant switch for browsers without View Transitions API support
+      updateTheme();
+    }
   };
 
   // Prevent flash of wrong theme
