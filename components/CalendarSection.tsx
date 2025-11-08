@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, CalendarEvent } from "./Calendar";
-import { CalendarDays, RefreshCw, Calendar as CalendarIcon, AlertCircle, CheckCircle } from "lucide-react";
+import { EventDetailsModal } from "./EventDetailsModal";
+import { AddEventModal } from "./AddEventModal";
+import { CalendarDays, RefreshCw, Calendar as CalendarIcon, AlertCircle, CheckCircle, Plus } from "lucide-react";
 import { View } from "react-big-calendar";
 
 interface CalendarSectionProps {
@@ -16,6 +18,9 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [currentView, setCurrentView] = useState<View>("week");
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
 
   const fetchEvents = useCallback(async (showRefreshState = false) => {
     if (!userId || !isCalendarConnected) {
@@ -93,8 +98,124 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
   };
 
   const handleEventClick = (event: CalendarEvent) => {
-    // Future enhancement: Show event details modal
-    console.log("Event clicked:", event);
+    setSelectedEvent(event);
+  };
+
+  const handleEventMove = async (eventId: string, start: Date, end: Date) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      // Optimistically update the UI
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId
+            ? { ...event, start, end }
+            : event
+        )
+      );
+
+      const response = await fetch("/api/calendar/update-event", {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventId,
+          startTime: start.toISOString(),
+          endTime: end.toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update event");
+      }
+
+      // Optionally refresh events from server
+      // await fetchEvents(false);
+    } catch (err: any) {
+      console.error("Error moving event:", err);
+      // Revert the optimistic update on error
+      await fetchEvents(false);
+      setError(err.message || "Failed to move event");
+    }
+  };
+
+  const handleEventResize = async (eventId: string, start: Date, end: Date) => {
+    // Same as move, just updating the times
+    await handleEventMove(eventId, start, end);
+  };
+
+  const handleSelectSlot = (start: Date, end: Date) => {
+    setSelectedSlot({ start, end });
+    setShowAddEventModal(true);
+  };
+
+  const handleAddEvent = async (title: string, description: string, start: Date, end: Date) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("/api/calendar/create-event", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          startTime: start.toISOString(),
+          endTime: end.toISOString(),
+          isStudyAutopilot: false,
+          checkConflict: false, // Allow overlapping events for manual creation
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create event");
+      }
+
+      // Refresh events to show the new one
+      await fetchEvents(false);
+    } catch (err: any) {
+      console.error("Error creating event:", err);
+      throw err; // Re-throw so modal can show error
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("/api/calendar/delete-event", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ eventId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete event");
+      }
+
+      // Remove event from state
+      setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
+    } catch (err: any) {
+      console.error("Error deleting event:", err);
+      setError(err.message || "Failed to delete event");
+    }
   };
 
   if (!isCalendarConnected) {
@@ -147,6 +268,26 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
 
   return (
     <div className="relative animate-fadeIn">
+      {/* Modals */}
+      {selectedEvent && (
+        <EventDetailsModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onDelete={handleDeleteEvent}
+        />
+      )}
+      {showAddEventModal && (
+        <AddEventModal
+          initialStart={selectedSlot?.start}
+          initialEnd={selectedSlot?.end}
+          onClose={() => {
+            setShowAddEventModal(false);
+            setSelectedSlot(null);
+          }}
+          onAdd={handleAddEvent}
+        />
+      )}
+
       {/* Calendar Header */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-t-xl shadow-lg p-4 md:p-6 border-t-4 border-blue-400">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -161,14 +302,24 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
               </p>
             </div>
           </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-            title="Refresh calendar"
-          >
-            <RefreshCw className={`w-5 h-5 text-white ${refreshing ? "animate-spin" : ""}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAddEventModal(true)}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 text-white font-medium"
+              title="Add new event"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">Add Event</span>
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              title="Refresh calendar"
+            >
+              <RefreshCw className={`w-5 h-5 text-white ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -195,6 +346,9 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
             <Calendar
               events={events}
               onEventClick={handleEventClick}
+              onEventMove={handleEventMove}
+              onEventResize={handleEventResize}
+              onSelectSlot={handleSelectSlot}
             />
           </div>
         )}

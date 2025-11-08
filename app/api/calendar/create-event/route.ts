@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractTokenFromHeader, verifyToken } from "@/lib/auth";
-import { createStudyEvent, isTimeSlotAvailable } from "@/lib/google-calendar";
+import { createStudyEvent, createCalendarEvent, isTimeSlotAvailable } from "@/lib/google-calendar";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, startTime, endTime, taskId } = body;
+    const { title, description, startTime, endTime, taskId, isStudyAutopilot } = body;
 
     if (!title || !startTime || !endTime) {
       return NextResponse.json(
@@ -30,24 +30,36 @@ export async function POST(request: NextRequest) {
     const start = new Date(startTime);
     const end = new Date(endTime);
 
-    // Check if time slot is available
-    const isAvailable = await isTimeSlotAvailable(payload.userId, start, end);
+    // Check if time slot is available (optional - skip for manual events if checkConflict is false)
+    const checkConflict = body.checkConflict !== false; // Default to true
+    if (checkConflict) {
+      const isAvailable = await isTimeSlotAvailable(payload.userId, start, end);
 
-    if (!isAvailable) {
-      return NextResponse.json(
-        { error: "Time slot conflicts with existing event" },
-        { status: 409 }
-      );
+      if (!isAvailable) {
+        return NextResponse.json(
+          { error: "Time slot conflicts with existing event" },
+          { status: 409 }
+        );
+      }
     }
 
-    const event = await createStudyEvent(
-      payload.userId,
-      title,
-      description || "",
-      start,
-      end,
-      taskId
-    );
+    // Use appropriate creation function based on event type
+    const event = isStudyAutopilot
+      ? await createStudyEvent(
+          payload.userId,
+          title,
+          description || "",
+          start,
+          end,
+          taskId
+        )
+      : await createCalendarEvent(
+          payload.userId,
+          title,
+          description || "",
+          start,
+          end
+        );
 
     return NextResponse.json({ event });
   } catch (error) {
