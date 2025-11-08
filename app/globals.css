@@ -31,22 +31,16 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Smooth theme transitions */
-html {
-  transition: background-color 300ms ease-in-out, color 300ms ease-in-out;
-}
+/* Optimized theme transitions using View Transitions API */
+/* The View Transitions API provides hardware-accelerated, performant theme switching */
+/* For browsers without support, the theme changes instantly (no laggy universal transitions) */
 
-html *,
-html *::before,
-html *::after {
-  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
-}
-
-/* Preserve existing transitions on elements that already have them */
-html *:where([class*="transition"]) {
-  transition-property: background-color, border-color, color, fill, stroke, box-shadow, transform, opacity;
+@supports (view-transition-name: none) {
+  /* Enable smooth cross-fade for supported browsers */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.5s;
+  }
 }
 
 /* Prevent transitions on page load */
