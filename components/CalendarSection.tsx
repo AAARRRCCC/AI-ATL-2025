@@ -1,0 +1,270 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Calendar, CalendarEvent } from "./Calendar";
+import { CalendarDays, RefreshCw, Calendar as CalendarIcon, AlertCircle, CheckCircle } from "lucide-react";
+import { View } from "react-big-calendar";
+
+interface CalendarSectionProps {
+  userId: string | null;
+  isCalendarConnected: boolean;
+}
+
+export function CalendarSection({ userId, isCalendarConnected }: CalendarSectionProps) {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentView, setCurrentView] = useState<View>("week");
+
+  const fetchEvents = useCallback(async (showRefreshState = false) => {
+    if (!userId || !isCalendarConnected) {
+      setLoading(false);
+      return;
+    }
+
+    if (showRefreshState) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      // Fetch events for the next 30 days
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7); // Include past week
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 30); // Next 30 days
+
+      const response = await fetch(
+        `/api/calendar/events?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch calendar events");
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.events) {
+        // Transform events to match CalendarEvent interface
+        const formattedEvents: CalendarEvent[] = data.events.map((event: any) => ({
+          id: event.id,
+          title: event.title,
+          start: new Date(event.start),
+          end: new Date(event.end),
+          description: event.description || "",
+          // Check if it's a Study Autopilot event
+          isStudyAutopilot: event.title?.includes("[Study Autopilot]"),
+          googleEventId: event.id,
+        }));
+
+        setEvents(formattedEvents);
+      } else {
+        setEvents([]);
+      }
+    } catch (err: any) {
+      console.error("Error fetching calendar events:", err);
+      setError(err.message || "Failed to load calendar events");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [userId, isCalendarConnected]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  const handleRefresh = () => {
+    fetchEvents(true);
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    // Future enhancement: Show event details modal
+    console.log("Event clicked:", event);
+  };
+
+  if (!isCalendarConnected) {
+    return (
+      <div className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-lg p-8 border-2 border-dashed border-blue-200 dark:border-gray-600">
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <div className="p-4 bg-white dark:bg-gray-700 rounded-full shadow-md">
+            <CalendarDays className="w-12 h-12 text-blue-500 dark:text-blue-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Connect Your Calendar
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm max-w-md">
+              Connect your Google Calendar to see your scheduled events and study sessions here.
+            </p>
+          </div>
+          <div className="pt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Click the "Connect Google Calendar" button in the header to get started.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-red-200 dark:border-red-800">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              Error Loading Calendar
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{error}</p>
+            <button
+              onClick={handleRefresh}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative animate-fadeIn">
+      {/* Calendar Header */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-t-xl shadow-lg p-4 md:p-6 border-t-4 border-blue-400">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg shadow-md">
+              <CalendarIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold text-white">Your Calendar</h2>
+              <p className="text-blue-100 text-sm">
+                {events.length} {events.length === 1 ? "event" : "events"} scheduled
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            title="Refresh calendar"
+          >
+            <RefreshCw className={`w-5 h-5 text-white ${refreshing ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Calendar Body */}
+      <div className="bg-white dark:bg-gray-800 rounded-b-xl shadow-lg overflow-hidden border-x-2 border-b-2 border-gray-100 dark:border-gray-700">
+        {loading ? (
+          <div className="p-8">
+            <CalendarSkeleton />
+          </div>
+        ) : events.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full mb-4 shadow-md">
+              <CheckCircle className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              All Clear!
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm max-w-md mx-auto">
+              No upcoming events scheduled. Create assignments through chat and I'll automatically schedule them for you.
+            </p>
+          </div>
+        ) : (
+          <div className="p-2 md:p-4" style={{ minHeight: "600px" }}>
+            <Calendar
+              events={events}
+              onEventClick={handleEventClick}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Event Legend */}
+      {!loading && events.length > 0 && (
+        <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-lg">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+            Event Types
+          </h3>
+          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 md:gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-blue-600 shadow-sm"></div>
+              <span className="text-xs text-gray-600 dark:text-gray-300">Research Phase</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-purple-600 shadow-sm"></div>
+              <span className="text-xs text-gray-600 dark:text-gray-300">Drafting Phase</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-green-600 shadow-sm"></div>
+              <span className="text-xs text-gray-600 dark:text-gray-300">Revision Phase</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-gray-400 shadow-sm"></div>
+              <span className="text-xs text-gray-600 dark:text-gray-300">Other Events</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Loading skeleton component
+function CalendarSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="flex gap-4">
+        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <div key={i} className="flex-1">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+            <div className="space-y-2">
+              <div className="h-16 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+              <div className="h-16 bg-gray-100 dark:bg-gray-700/50 rounded"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="text-center text-gray-500 dark:text-gray-400 text-sm">
+        Loading your calendar...
+      </div>
+    </div>
+  );
+}

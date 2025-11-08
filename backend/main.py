@@ -111,11 +111,8 @@ async def websocket_chat(websocket: WebSocket):
         # Load conversation history from database
         history = await db.get_chat_history(user_id, limit=20)
 
-        # Send connection confirmation
-        await websocket.send_json({
-            "type": "connected",
-            "message": "Connected to Study Autopilot AI"
-        })
+        # Note: Connection status is shown in UI header, not as a chat message
+        # No need to send a "Connected" message here
 
         # Main chat loop
         while True:

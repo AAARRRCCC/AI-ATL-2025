@@ -69,6 +69,10 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
 
           if (data.type === 'typing') {
             setIsTyping(true);
+          } else if (data.type === 'connected') {
+            // Backend connection confirmation - ignore, we handle this in onopen
+            // This prevents duplicate "Connected" messages in chat
+            return;
           } else if (data.type === 'message' || data.message) {
             setIsTyping(false);
 

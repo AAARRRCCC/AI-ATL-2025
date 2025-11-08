@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, CheckCircle2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from './ui/ConfirmDialog';
 
 interface GoogleCalendarButtonProps {
   className?: string;
@@ -12,6 +13,8 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   // Check connection status on mount
   useEffect(() => {
@@ -77,18 +80,19 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect your Google Calendar? You can reconnect at any time.')) {
-      return;
-    }
+  const handleDisconnect = () => {
+    setShowDisconnectDialog(true);
+  };
 
-    setIsLoading(true);
+  const confirmDisconnect = async () => {
+    setIsDisconnecting(true);
 
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         toast.error('Please log in first');
-        setIsLoading(false);
+        setIsDisconnecting(false);
+        setShowDisconnectDialog(false);
         return;
       }
 
@@ -113,7 +117,8 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
       console.error('Error disconnecting calendar:', error);
       toast.error('Failed to disconnect Google Calendar');
     } finally {
-      setIsLoading(false);
+      setIsDisconnecting(false);
+      setShowDisconnectDialog(false);
     }
   };
 
@@ -121,7 +126,7 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
     return (
       <button
         disabled
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed ${className}`}
+        className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-700 ${className}`}
       >
         <Loader2 className="h-4 w-4 animate-spin" />
         <span className="text-sm font-medium">Checking...</span>
@@ -131,13 +136,27 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
 
   if (isConnected) {
     return (
-      <button
-        onClick={handleDisconnect}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 transition-colors ${className}`}
-      >
-        <CheckCircle2 className="h-4 w-4" />
-        <span className="text-sm font-medium">Calendar Connected</span>
-      </button>
+      <>
+        <button
+          onClick={handleDisconnect}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 transition-all border border-green-200 dark:border-green-700 hover:scale-105 active:scale-95 hover:shadow-md ${className}`}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          <span className="text-sm font-medium">Calendar Connected</span>
+        </button>
+
+        <ConfirmDialog
+          isOpen={showDisconnectDialog}
+          onClose={() => setShowDisconnectDialog(false)}
+          onConfirm={confirmDisconnect}
+          title="Disconnect Google Calendar?"
+          message="This will remove calendar integration. You can reconnect anytime."
+          confirmText="Disconnect"
+          cancelText="Cancel"
+          variant="danger"
+          isLoading={isDisconnecting}
+        />
+      </>
     );
   }
 
@@ -145,7 +164,7 @@ export function GoogleCalendarButton({ className = '' }: GoogleCalendarButtonPro
     <button
       onClick={handleConnect}
       disabled={isLoading}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg hover:scale-105 active:scale-95 ${className}`}
     >
       {isLoading ? (
         <>

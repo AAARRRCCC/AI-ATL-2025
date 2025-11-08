@@ -1,7 +1,13 @@
 'use client';
 
 import { Bot, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import rehypeHighlight from 'rehype-highlight';
 import { ChatMessage as ChatMessageType } from '@/hooks/useWebSocket';
+import 'katex/dist/katex.min.css';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -35,10 +41,91 @@ export function ChatMessage({ message }: ChatMessageProps) {
           className={`px-4 py-2 rounded-lg ${
             isUser
               ? 'bg-blue-600 dark:bg-blue-500 text-white rounded-tr-none'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-200 dark:border-gray-600'
           }`}
         >
-          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          {isUser ? (
+            // User messages: plain text
+            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+          ) : (
+            // AI messages: render as markdown
+            <div className="markdown-content text-sm">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex, rehypeHighlight]}
+                components={{
+                  // Headings
+                  h1: ({ children }) => <h1 className="text-xl font-bold mt-4 mb-2">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-lg font-bold mt-3 mb-2">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-base font-bold mt-2 mb-1">{children}</h3>,
+
+                  // Paragraphs
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+
+                  // Lists
+                  ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                  li: ({ children }) => <li className="ml-2">{children}</li>,
+
+                  // Code blocks
+                  code: ({ className, children, ...props }) => {
+                    const isInline = !className;
+                    return isInline ? (
+                      <code className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-red-600 dark:text-red-400 font-mono text-xs" {...props}>
+                        {children}
+                      </code>
+                    ) : (
+                      <code className={`${className} block`} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  pre: ({ children }) => (
+                    <pre className="bg-gray-800 dark:bg-gray-900 text-gray-100 rounded-md p-3 mb-2 overflow-x-auto text-xs">
+                      {children}
+                    </pre>
+                  ),
+
+                  // Links
+                  a: ({ children, href }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline">
+                      {children}
+                    </a>
+                  ),
+
+                  // Tables
+                  table: ({ children }) => (
+                    <div className="overflow-x-auto mb-2">
+                      <table className="min-w-full border border-gray-300 dark:border-gray-600">
+                        {children}
+                      </table>
+                    </div>
+                  ),
+                  thead: ({ children }) => <thead className="bg-gray-200 dark:bg-gray-600">{children}</thead>,
+                  th: ({ children }) => <th className="border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-left font-semibold">{children}</th>,
+                  td: ({ children }) => <td className="border border-gray-300 dark:border-gray-600 px-3 py-1.5">{children}</td>,
+
+                  // Blockquotes
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 border-gray-400 dark:border-gray-500 pl-3 italic my-2 text-gray-700 dark:text-gray-300">
+                      {children}
+                    </blockquote>
+                  ),
+
+                  // Horizontal rules
+                  hr: () => <hr className="my-3 border-gray-300 dark:border-gray-600" />,
+
+                  // Strong/bold
+                  strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+
+                  // Emphasis/italic
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
 
         {/* Function Calls Indicator */}
