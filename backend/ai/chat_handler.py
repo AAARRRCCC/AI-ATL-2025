@@ -80,11 +80,15 @@ Be supportive and help reduce procrastination through momentum, not punishment.
         """
         genai.configure(api_key=gemini_api_key)
 
+        # Format system instruction with current date
+        current_date = datetime.now().strftime("%B %d, %Y")  # e.g., "November 08, 2025"
+        system_instruction = self.SYSTEM_INSTRUCTION.format(current_date=current_date)
+
         # Initialize Gemini model with function calling
         self.model = genai.GenerativeModel(
             model_name='gemini-flash-latest',  # Auto-updates to latest flash model
             tools=tools,
-            system_instruction=self.SYSTEM_INSTRUCTION
+            system_instruction=system_instruction
         )
 
     async def process_message(
