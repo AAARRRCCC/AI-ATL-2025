@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Wifi, WifiOff, Trash2 } from 'lucide-react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import { AlertCircle, Loader2, UploadCloud, Wifi, WifiOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { ChatMessage } from './ChatMessage';
@@ -14,10 +14,20 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
-  const { messages, sendMessage, isConnected, isTyping, error, isInitializing } = useWebSocket(userId);
+  const {
+    messages,
+    sendMessage,
+    isConnected,
+    isTyping,
+    error,
+    isInitializing,
+    appendMessages
+  } = useWebSocket(userId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -145,6 +155,73 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
     }
   };
 
+  const handleUploadPdf = async (file: File) => {
+    if (!userId) {
+      toast.error('Please log in first');
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      toast.error('Only PDF files are supported');
+      return;
+    }
+
+    const maxBytes = 10 * 1024 * 1024; // 10 MB
+    if (file.size > maxBytes) {
+      toast.error('PDF must be 10MB or smaller');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please log in first');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setIsUploadingPdf(true);
+    const toastId = toast.loading('Uploading assignment PDF...');
+
+    try {
+      const response = await fetch('/api/chat/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process PDF');
+      }
+
+      const normalizeMessage = (msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp,
+        function_calls: msg.function_calls,
+        attachments: msg.attachments,
+      });
+
+      const newMessages = [];
+      if (data.user_message) newMessages.push(normalizeMessage(data.user_message));
+      if (data.assistant_message) newMessages.push(normalizeMessage(data.assistant_message));
+
+      appendMessages(newMessages);
+
+      toast.success('Assignment uploaded and analyzed!', { id: toastId });
+    } catch (err: any) {
+      console.error('PDF upload failed:', err);
+      toast.error(err.message || 'Failed to upload PDF', { id: toastId });
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
       {/* Header */}
@@ -182,6 +259,47 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
           <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
         </div>
       )}
+
+      {/* Upload Banner */}
+      <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+            {isUploadingPdf ? (
+              <Loader2 className="h-5 w-5 text-blue-600 dark:text-blue-300 animate-spin" />
+            ) : (
+              <UploadCloud className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Upload assignment PDFs</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              I&apos;ll extract the requirements and build a plan automatically.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                handleUploadPdf(file);
+                event.target.value = '';
+              }
+            }}
+          />
+          <button
+            onClick={() => uploadInputRef.current?.click()}
+            disabled={isUploadingPdf || !isConnected}
+            className="px-3 py-1.5 text-sm font-medium rounded-md border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800/50 disabled:opacity-50"
+          >
+            {isUploadingPdf ? 'Uploading…' : 'Choose PDF'}
+          </button>
+        </div>
+      </div>
 
       {/* Messages Area */}
       <div
@@ -250,12 +368,14 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
       {/* Input Area */}
       <ChatInput
         onSend={sendMessage}
+        onUploadPdf={handleUploadPdf}
         disabled={!isConnected}
         placeholder={
           isConnected
             ? "Ask me anything about your assignments..."
             : "Connecting to AI..."
         }
+        isUploading={isUploadingPdf}
       />
     </div>
   );

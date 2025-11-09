@@ -84,7 +84,8 @@ class Database:
         user_id: str,
         role: str,
         content: str,
-        function_calls: Optional[List[Dict]] = None
+        function_calls: Optional[List[Dict]] = None,
+        attachments: Optional[List[Dict[str, Any]]] = None
     ):
         """
         Save a chat message to the database.
@@ -104,6 +105,9 @@ class Database:
 
         if function_calls:
             message["function_calls"] = function_calls
+
+        if attachments:
+            message["attachments"] = attachments
 
         await self.db.chat_messages.insert_one(message)
 

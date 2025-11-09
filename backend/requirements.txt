@@ -31,3 +31,6 @@ httpx==0.25.2  # HTTP client for API calls
 
 # CORS support
 fastapi-cors==0.0.6
+
+# Document parsing
+pypdf==4.3.1
