@@ -61,6 +61,11 @@ class FunctionExecutor:
 
             assignment_id = await self.db.create_assignment(user_id, assignment_data)
 
+            print(f"✅ Created assignment with ID: {assignment_id}")
+            print(f"   User ID: {user_id}")
+            print(f"   Title: {args['title']}")
+            print(f"   Status: not_started")
+
             return {
                 "success": True,
                 "assignment_id": assignment_id,
@@ -140,6 +145,11 @@ class FunctionExecutor:
                     assignment_id,
                     subtask_data
                 )
+                print(f"✅ Created subtask with ID: {task_id}")
+                print(f"   User ID: {self.user_id}")
+                print(f"   Assignment ID: {assignment_id}")
+                print(f"   Title: {subtask_data['title']}")
+                print(f"   Status: pending")
                 task_ids.append(task_id)
 
             # Calculate total hours
@@ -460,9 +470,12 @@ class FunctionExecutor:
                                         continue
 
                                 # Schedule the task!
+                                # Include assignment title in task title for consistent color assignment
+                                full_title = f"{assignment['title']} - {task['title']}"
+
                                 scheduled_tasks.append({
                                     "task_id": str(task["_id"]),
-                                    "title": task["title"],
+                                    "title": full_title,
                                     "scheduled_start": task_start.isoformat(),
                                     "scheduled_end": task_end.isoformat(),
                                     "duration_minutes": duration_minutes,
@@ -487,10 +500,11 @@ class FunctionExecutor:
                     fallback_date = start.replace(hour=10, minute=0, second=0, microsecond=0)
                     task_start = fallback_date
                     task_end = task_start + timedelta(minutes=duration_minutes)
+                    full_title = f"{assignment['title']} - {task['title']}"
 
                     scheduled_tasks.append({
                         "task_id": str(task["_id"]),
-                        "title": task["title"],
+                        "title": full_title,
                         "scheduled_start": task_start.isoformat(),
                         "scheduled_end": task_end.isoformat(),
                         "duration_minutes": duration_minutes,

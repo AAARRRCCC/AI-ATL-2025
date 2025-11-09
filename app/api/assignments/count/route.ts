@@ -28,11 +28,20 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
     const assignmentsCollection = db.collection('assignments');
 
-    // Count active assignments (not completed)
-    const count = await assignmentsCollection.countDocuments({
+    // Debug: Log query parameters
+    const query = {
       user_id: payload.userId,
       status: { $ne: 'completed' }
-    });
+    };
+    console.log('📊 Assignments count query:', JSON.stringify(query));
+
+    // Count active assignments (not completed)
+    const count = await assignmentsCollection.countDocuments(query);
+    console.log(`📊 Found ${count} assignments for user ${payload.userId}`);
+
+    // Debug: Get sample documents to verify data structure
+    const samples = await assignmentsCollection.find({ user_id: payload.userId }).limit(3).toArray();
+    console.log('📊 Sample assignments:', samples.map(a => ({ _id: a._id, title: a.title, status: a.status, user_id: a.user_id })));
 
     return NextResponse.json({ count }, { status: 200 });
   } catch (error) {
