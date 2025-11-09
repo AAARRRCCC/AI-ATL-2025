@@ -39,12 +39,15 @@ export async function POST(request: NextRequest) {
 
     // Fetch all SteadyStudy events from Google Calendar
     console.log("Fetching calendar events for sync...");
+    console.log(`Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     const calendarEvents = await getCalendarEvents(payload.userId, startDate, endDate);
+    console.log(`Total calendar events found: ${calendarEvents.length}`);
     const steadyStudyEvents = calendarEvents.filter(event =>
       event.summary?.includes("[SteadyStudy]")
     );
 
     console.log(`Found ${steadyStudyEvents.length} SteadyStudy events in calendar`);
+    console.log("SteadyStudy event titles:", steadyStudyEvents.map(e => e.summary));
 
     // Extract subtask titles from calendar events
     // Calendar events are formatted like: "[SteadyStudy] Task Title - Phase"
@@ -60,6 +63,7 @@ export async function POST(request: NextRequest) {
     );
 
     console.log(`Unique subtask titles in calendar: ${calendarSubtaskTitles.size}`);
+    console.log("Calendar subtask titles:", Array.from(calendarSubtaskTitles));
 
     // Fetch all user assignments
     const assignments = await assignmentsCollection
@@ -89,8 +93,10 @@ export async function POST(request: NextRequest) {
         const subtaskTitle = subtask.title;
         if (calendarSubtaskTitles.has(subtaskTitle)) {
           subtasksToKeep.push(subtask);
+          console.log(`    ✓ KEEP: "${subtaskTitle}" (found in calendar)`);
         } else {
           subtasksToDelete.push(subtask);
+          console.log(`    ✗ DELETE: "${subtaskTitle}" (NOT found in calendar)`);
         }
       }
 
