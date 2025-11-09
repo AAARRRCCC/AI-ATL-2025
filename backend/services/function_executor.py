@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from dateutil import parser
 import httpx
 import os
+import google.generativeai as genai
+import json
 
 
 class FunctionExecutor:
@@ -30,6 +32,20 @@ class FunctionExecutor:
         self.user_id = user_id
         self.auth_token = auth_token
         self.api_base_url = os.getenv("API_BASE_URL", "http://localhost:3000")
+
+        # Configure Gemini for AI-powered breakdown
+        gemini_api_key = os.getenv("GEMINI_API_KEY")
+        if gemini_api_key:
+            genai.configure(api_key=gemini_api_key)
+            self.breakdown_model = genai.GenerativeModel(
+                model_name='gemini-flash-latest',
+                generation_config=genai.GenerationConfig(
+                    temperature=0.7,
+                    response_mime_type="application/json"
+                )
+            )
+        else:
+            self.breakdown_model = None
 
     async def create_assignment(
         self,
@@ -242,7 +258,14 @@ class FunctionExecutor:
         end_date: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Schedule tasks for an assignment using user preferences.
+        Intelligently schedule tasks by analyzing existing calendar events.
+
+        Features:
+        - Checks Google Calendar for existing events
+        - Detects heavy workload periods (multiple classes back-to-back)
+        - Adds buffer time after intensive activities
+        - Never overlaps with existing events
+        - Respects user preferences and productivity patterns
 
         Args:
             user_id: User ID
@@ -251,7 +274,7 @@ class FunctionExecutor:
             end_date: End date for scheduling (defaults to assignment due date)
 
         Returns:
-            Dict with scheduled tasks
+            Dict with intelligently scheduled tasks
         """
         try:
             assignment = await self.db.get_assignment(assignment_id)
@@ -261,14 +284,12 @@ class FunctionExecutor:
             if not assignment:
                 return {"success": False, "error": "Assignment not found"}
 
-            # Extract user preferences or use defaults
+            # Extract user preferences
             study_settings = preferences.get("studySettings", {}) if preferences else {}
-            days_available = study_settings.get("daysAvailable", [1, 2, 3, 4, 5])  # Mon-Fri
-            preferred_times = study_settings.get("preferredStudyTimes", [])
+            days_available = study_settings.get("daysAvailable", [1, 2, 3, 4, 5])
             productivity_pattern = study_settings.get("productivityPattern", "midday")
             deadline_buffer = study_settings.get("assignmentDeadlineBuffer", 2)
             subject_strengths = study_settings.get("subjectStrengths", [])
-            default_work_duration = study_settings.get("defaultWorkDuration", 50)
 
             # Get assignment subject and check if it needs more time
             assignment_subject = assignment.get("subject", "")
@@ -278,101 +299,236 @@ class FunctionExecutor:
                     needs_more_time = subject.get("needsMoreTime", False)
                     break
 
-            # Define time ranges based on productivity pattern
-            time_ranges = {
-                "morning": {"start": "08:00", "end": "12:00"},
-                "midday": {"start": "12:00", "end": "17:00"},
-                "evening": {"start": "17:00", "end": "21:00"}
-            }
-
-            # Use preferred times if available, otherwise use productivity pattern
-            if preferred_times:
-                available_time_blocks = preferred_times
-            else:
-                pattern_range = time_ranges.get(productivity_pattern, time_ranges["midday"])
-                available_time_blocks = [pattern_range]
-
-            # Calculate start date (today or provided)
+            # Calculate scheduling window
             start = datetime.now() if not start_date else parser.parse(start_date)
-
-            # Calculate end date (assignment due date minus buffer)
             if "due_date" in assignment:
                 due_date = assignment["due_date"]
                 if isinstance(due_date, str):
                     due_date = parser.parse(due_date)
-                # Apply deadline buffer
                 target_completion = due_date - timedelta(days=deadline_buffer)
             else:
-                target_completion = start + timedelta(days=14)  # Default 2 weeks
+                target_completion = start + timedelta(days=14)
 
-            # Schedule tasks
+            # STEP 1: Fetch existing calendar events for the entire scheduling window
+            print(f"\n{'='*60}")
+            print(f"INTELLIGENT SCHEDULING: Fetching calendar events...")
+            print(f"Window: {start.date()} to {target_completion.date()}")
+
+            calendar_events_result = await self.get_calendar_events(
+                user_id,
+                start.isoformat(),
+                target_completion.isoformat()
+            )
+
+            existing_events = calendar_events_result.get("events", [])
+            print(f"Found {len(existing_events)} existing calendar events")
+
+            # STEP 2: Analyze calendar to find truly free time slots
+            def parse_event_time(event):
+                """Extract start and end times from calendar event."""
+                start_str = event.get("start", {}).get("dateTime") or event.get("start", {}).get("date")
+                end_str = event.get("end", {}).get("dateTime") or event.get("end", {}).get("date")
+
+                if start_str and end_str:
+                    try:
+                        return parser.parse(start_str), parser.parse(end_str)
+                    except:
+                        return None, None
+                return None, None
+
+            # Build list of busy periods
+            busy_periods = []
+            for event in existing_events:
+                event_start, event_end = parse_event_time(event)
+                if event_start and event_end:
+                    busy_periods.append({
+                        "start": event_start,
+                        "end": event_end,
+                        "title": event.get("summary", "Busy"),
+                        "is_study_autopilot": event.get("extendedProperties", {}).get("private", {}).get("studyAutopilot") == "true"
+                    })
+
+            # Sort busy periods by start time
+            busy_periods.sort(key=lambda x: x["start"])
+            print(f"Identified {len(busy_periods)} busy time periods")
+
+            def is_heavy_workload_period(check_time):
+                """
+                Detect if a time period has heavy workload (multiple events back-to-back).
+                Returns (is_heavy, buffer_needed_minutes)
+                """
+                # Look at 3-hour window before the check time
+                window_start = check_time - timedelta(hours=3)
+                window_end = check_time
+
+                events_in_window = [
+                    bp for bp in busy_periods
+                    if not bp["is_study_autopilot"]  # Don't count our own tasks
+                    and bp["start"] < window_end
+                    and bp["end"] > window_start
+                ]
+
+                if len(events_in_window) >= 3:
+                    # 3+ events in 3 hours = heavy workload
+                    return True, 60  # Need 60 min buffer
+                elif len(events_in_window) == 2:
+                    # 2 events = moderate workload
+                    return True, 30  # Need 30 min buffer
+
+                return False, 0
+
+            def find_free_slot(duration_minutes, search_start_time, preferred_time_ranges):
+                """
+                Find the next free time slot that:
+                - Doesn't overlap with existing events
+                - Has appropriate buffer after heavy workloads
+                - Falls within preferred time ranges
+                - Respects available days
+                """
+                current_search = search_start_time
+                max_days_ahead = 30
+                days_checked = 0
+
+                while days_checked < max_days_ahead:
+                    # Check if this day is available
+                    day_of_week = current_search.weekday()
+                    day_num = (day_of_week + 1) % 7
+
+                    if day_num not in days_available:
+                        current_search += timedelta(days=1)
+                        current_search = current_search.replace(hour=8, minute=0, second=0, microsecond=0)
+                        days_checked += 1
+                        continue
+
+                    # Try each preferred time range for this day
+                    for time_range in preferred_time_ranges:
+                        start_time_str = time_range.get("start", "09:00")
+                        end_time_str = time_range.get("end", "17:00")
+
+                        hour, minute = map(int, start_time_str.split(":"))
+                        range_start = current_search.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+                        hour, minute = map(int, end_time_str.split(":"))
+                        range_end = current_search.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+                        # Start from the beginning of the range or current search time, whichever is later
+                        slot_start = max(range_start, current_search)
+
+                        # Try to find a slot within this time range
+                        while slot_start + timedelta(minutes=duration_minutes) <= range_end:
+                            slot_end = slot_start + timedelta(minutes=duration_minutes)
+
+                            # Check for overlaps with existing events
+                            has_overlap = False
+                            for busy in busy_periods:
+                                if (slot_start < busy["end"] and slot_end > busy["start"]):
+                                    has_overlap = True
+                                    # Jump to after this busy period
+                                    slot_start = busy["end"]
+                                    break
+
+                            if has_overlap:
+                                continue
+
+                            # Check if this time is after a heavy workload period
+                            is_heavy, buffer_needed = is_heavy_workload_period(slot_start)
+                            if is_heavy:
+                                # Add buffer time
+                                slot_start_with_buffer = slot_start + timedelta(minutes=buffer_needed)
+                                if slot_start_with_buffer + timedelta(minutes=duration_minutes) <= range_end:
+                                    slot_start = slot_start_with_buffer
+                                    slot_end = slot_start + timedelta(minutes=duration_minutes)
+                                else:
+                                    # Not enough time left in range with buffer
+                                    break
+
+                            # Found a good slot!
+                            return slot_start, slot_end
+
+                            # If we get here, move forward and try again
+                            slot_start += timedelta(minutes=15)  # Try every 15 minutes
+
+                    # No slot found today, try tomorrow
+                    current_search += timedelta(days=1)
+                    current_search = current_search.replace(hour=8, minute=0, second=0, microsecond=0)
+                    days_checked += 1
+
+                # Couldn't find a slot
+                return None, None
+
+            # Define preferred time ranges based on productivity pattern
+            time_ranges_map = {
+                "morning": [{"start": "08:00", "end": "12:00"}],
+                "midday": [{"start": "10:00", "end": "17:00"}],
+                "evening": [{"start": "17:00", "end": "21:00"}],
+                "all_day": [
+                    {"start": "08:00", "end": "12:00"},
+                    {"start": "13:00", "end": "17:00"},
+                    {"start": "18:00", "end": "21:00"}
+                ]
+            }
+
+            preferred_time_ranges = time_ranges_map.get(productivity_pattern, time_ranges_map["midday"])
+
+            # STEP 3: Schedule each task intelligently
             scheduled_tasks = []
-            current_date = start.replace(hour=0, minute=0, second=0, microsecond=0)
+            current_search_time = start
 
-            for task in tasks:
+            print(f"\nScheduling {len(tasks)} tasks intelligently...")
+
+            for i, task in enumerate(tasks):
                 duration_minutes = task["estimated_duration"]
 
                 # Apply time multiplier if subject needs more time
                 if needs_more_time:
-                    duration_minutes = int(duration_minutes * 1.25)  # 25% more time
+                    duration_minutes = int(duration_minutes * 1.25)
 
-                # Find next available slot
-                scheduled = False
-                attempts = 0
-                max_attempts = 30  # Prevent infinite loop
+                print(f"\nTask {i+1}/{len(tasks)}: {task['title']} ({duration_minutes} min)")
 
-                while not scheduled and attempts < max_attempts and current_date <= target_completion:
-                    # Check if current day is available
-                    day_of_week = current_date.weekday()  # Monday=0, Sunday=6
+                # Find optimal free slot
+                slot_start, slot_end = find_free_slot(
+                    duration_minutes,
+                    current_search_time,
+                    preferred_time_ranges
+                )
 
-                    # Convert to 0=Sunday format if needed
-                    day_num = (day_of_week + 1) % 7
+                if slot_start and slot_end:
+                    print(f"  ✓ Scheduled: {slot_start.strftime('%a %b %d, %I:%M %p')} - {slot_end.strftime('%I:%M %p')}")
 
-                    if day_num in days_available:
-                        # Try to schedule in the first available time block
-                        for time_block in available_time_blocks:
-                            start_time_str = time_block["start"]
-                            hour, minute = map(int, start_time_str.split(":"))
-
-                            task_start = current_date.replace(hour=hour, minute=minute)
-                            task_end = task_start + timedelta(minutes=duration_minutes)
-
-                            # Make sure we don't exceed the time block end
-                            block_end_str = time_block["end"]
-                            block_hour, block_minute = map(int, block_end_str.split(":"))
-                            block_end = current_date.replace(hour=block_hour, minute=block_minute)
-
-                            if task_end <= block_end:
-                                scheduled_tasks.append({
-                                    "task_id": str(task["_id"]),
-                                    "title": task["title"],
-                                    "scheduled_start": task_start.isoformat(),
-                                    "scheduled_end": task_end.isoformat(),
-                                    "duration_minutes": duration_minutes,
-                                    "description": task.get("description", "")
-                                })
-                                scheduled = True
-                                # Move to next available time or day
-                                current_date = task_end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-                                break
-
-                    if not scheduled:
-                        current_date += timedelta(days=1)
-                        attempts += 1
-
-                if not scheduled:
-                    # Fallback: schedule anyway with warning
-                    task_start = current_date.replace(hour=10, minute=0)
-                    task_end = task_start + timedelta(minutes=duration_minutes)
                     scheduled_tasks.append({
                         "task_id": str(task["_id"]),
                         "title": task["title"],
-                        "scheduled_start": task_start.isoformat(),
-                        "scheduled_end": task_end.isoformat(),
+                        "scheduled_start": slot_start.isoformat(),
+                        "scheduled_end": slot_end.isoformat(),
                         "duration_minutes": duration_minutes,
                         "description": task.get("description", "")
                     })
-                    current_date += timedelta(days=1)
+
+                    # Add this to busy periods so next task doesn't overlap
+                    busy_periods.append({
+                        "start": slot_start,
+                        "end": slot_end,
+                        "title": task["title"],
+                        "is_study_autopilot": True
+                    })
+                    busy_periods.sort(key=lambda x: x["start"])
+
+                    # Next search starts after this task
+                    current_search_time = slot_end
+                else:
+                    print(f"  ✗ WARNING: Could not find suitable slot for {task['title']}")
+                    # Fallback: schedule at next available morning slot
+                    fallback_start = current_search_time.replace(hour=9, minute=0)
+                    fallback_end = fallback_start + timedelta(minutes=duration_minutes)
+                    scheduled_tasks.append({
+                        "task_id": str(task["_id"]),
+                        "title": task["title"],
+                        "scheduled_start": fallback_start.isoformat(),
+                        "scheduled_end": fallback_end.isoformat(),
+                        "duration_minutes": duration_minutes,
+                        "description": task.get("description", "")
+                    })
+                    current_search_time = fallback_end
 
             # Call Next.js API to create Google Calendar events
             calendar_result = None

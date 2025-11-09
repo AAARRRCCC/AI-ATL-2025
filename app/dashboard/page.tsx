@@ -2,13 +2,17 @@
 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GraduationCap, Settings } from "lucide-react";
+import { GraduationCap, Settings, ArrowRight, ListTodo, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import { GoogleCalendarButton } from "@/components/GoogleCalendarButton";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 import ThemeToggle from "@/components/ThemeToggle";
 import { CalendarSection } from "@/components/CalendarSection";
 import { motion } from "framer-motion";
+import TaskList from "@/components/TaskList";
+import AssignmentList from "@/components/AssignmentList";
+import TaskDetailModal from "@/components/TaskDetailModal";
+import { Task } from "@/components/TaskCard";
 
 interface User {
   _id: string;
@@ -24,6 +28,10 @@ function DashboardContent() {
   const [assignmentsCount, setAssignmentsCount] = useState<number | null>(null);
   const [sessionsCount, setSessionsCount] = useState<number | null>(null);
   const [countersLoading, setCountersLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [tasksRefreshTrigger, setTasksRefreshTrigger] = useState(0);
+  const [assignmentsRefreshTrigger, setAssignmentsRefreshTrigger] = useState(0);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -133,6 +141,37 @@ function DashboardContent() {
     router.push("/");
   };
 
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsTaskModalOpen(true);
+  };
+
+  const handleTaskComplete = async (taskId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/tasks/${taskId}/complete`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        setTasksRefreshTrigger((prev) => prev + 1);
+        fetchCounts();
+      }
+    } catch (error) {
+      console.error("Failed to complete task:", error);
+    }
+  };
+
+  const handleDataChange = () => {
+    fetchCounts();
+    setTasksRefreshTrigger((prev) => prev + 1);
+    setAssignmentsRefreshTrigger((prev) => prev + 1);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -140,12 +179,19 @@ function DashboardContent() {
         <header className="bg-white dark:bg-gray-800 shadow sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 skeleton"></div>
-                <div className="w-40 h-6 skeleton"></div>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 skeleton"></div>
+                  <div className="w-40 h-6 skeleton"></div>
+                </div>
+                <div className="hidden md:flex items-center gap-1">
+                  <div className="w-24 h-10 skeleton"></div>
+                  <div className="w-24 h-10 skeleton"></div>
+                  <div className="w-24 h-10 skeleton"></div>
+                </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-32 h-10 skeleton"></div>
+                <div className="w-10 h-10 skeleton"></div>
                 <div className="w-40 h-10 skeleton"></div>
                 <div className="w-10 h-10 skeleton"></div>
                 <div className="w-20 h-10 skeleton"></div>
@@ -186,13 +232,44 @@ function DashboardContent() {
       <header className="bg-white dark:bg-gray-800 shadow sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
-                <GraduationCap className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
+                  <GraduationCap className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">
+                  Study Autopilot
+                </span>
               </div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">
-                Study Autopilot
-              </span>
+
+              {/* Navigation Links */}
+              <nav className="hidden md:flex items-center gap-1">
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-all"
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => router.push("/tasks")}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all flex items-center gap-2"
+                >
+                  <ListTodo className="w-4 h-4" />
+                  Tasks
+                </button>
+                <button
+                  onClick={() => {
+                    const calendarSection = document.querySelector('[data-calendar-section]');
+                    if (calendarSection) {
+                      calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all flex items-center gap-2"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Calendar
+                </button>
+              </nav>
             </div>
 
             <div className="flex items-center gap-3">
@@ -257,7 +334,7 @@ function DashboardContent() {
           >
             <ChatContainer
               userId={user?._id || null}
-              onDataChange={fetchCounts}
+              onDataChange={handleDataChange}
             />
           </motion.div>
 
@@ -385,6 +462,67 @@ function DashboardContent() {
           </motion.div>
         </div>
 
+        {/* Upcoming Tasks Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="mt-8"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ListTodo className="w-5 h-5 text-blue-500" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Upcoming Tasks
+                </h2>
+              </div>
+              <button
+                onClick={() => router.push("/tasks")}
+                className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm transition-colors"
+              >
+                View All
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6">
+              <TaskList
+                statusFilter="pending,scheduled,in_progress"
+                dateFilter="week"
+                onTaskClick={handleTaskClick}
+                onTaskComplete={handleTaskComplete}
+                refreshTrigger={tasksRefreshTrigger}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Active Assignments Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          className="mt-8"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-5 h-5 text-purple-500" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Active Assignments
+                </h2>
+              </div>
+            </div>
+            <div className="p-6">
+              <AssignmentList
+                statusFilter="active"
+                refreshTrigger={assignmentsRefreshTrigger}
+                limit={6}
+              />
+            </div>
+          </div>
+        </motion.div>
+
         {/* Calendar Section - Full Width Below */}
         <div className="mt-8">
           <CalendarSection
@@ -392,6 +530,18 @@ function DashboardContent() {
             isCalendarConnected={!!user?.googleAccessToken}
           />
         </div>
+
+        {/* Task Detail Modal */}
+        <TaskDetailModal
+          task={selectedTask}
+          isOpen={isTaskModalOpen}
+          onClose={() => {
+            setIsTaskModalOpen(false);
+            setSelectedTask(null);
+          }}
+          onComplete={handleTaskComplete}
+          onRefresh={() => setTasksRefreshTrigger((prev) => prev + 1)}
+        />
       </main>
     </div>
   );
