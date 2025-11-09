@@ -12,6 +12,27 @@ from datetime import datetime
 from bson import ObjectId
 
 
+def serialize_document(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert MongoDB document to JSON-serializable format.
+    Converts ObjectId to string and datetime to ISO format.
+    """
+    if not doc:
+        return doc
+
+    for key, value in doc.items():
+        if isinstance(value, ObjectId):
+            doc[key] = str(value)
+        elif isinstance(value, datetime):
+            doc[key] = value.isoformat()
+        elif isinstance(value, dict):
+            doc[key] = serialize_document(value)
+        elif isinstance(value, list):
+            doc[key] = [serialize_document(item) if isinstance(item, dict) else item for item in value]
+
+    return doc
+
+
 class Database:
     """
     MongoDB database connection and operations handler.
@@ -139,7 +160,10 @@ class Database:
 
     async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user by ID"""
-        return await self.db.users.find_one({"_id": ObjectId(user_id)})
+        user = await self.db.users.find_one({"_id": ObjectId(user_id)})
+        if user:
+            serialize_document(user)
+        return user
 
     async def create_user(self, user_data: Dict[str, Any]) -> str:
         """Create a new user"""
@@ -168,7 +192,10 @@ class Database:
         Returns:
             User preferences document or None if not found
         """
-        return await self.db.user_preferences.find_one({"userId": ObjectId(user_id)})
+        prefs = await self.db.user_preferences.find_one({"userId": ObjectId(user_id)})
+        if prefs:
+            serialize_document(prefs)
+        return prefs
 
     # ==================== ASSIGNMENT OPERATIONS ====================
 
@@ -192,7 +219,10 @@ class Database:
 
     async def get_assignment(self, assignment_id: str) -> Optional[Dict[str, Any]]:
         """Get assignment by ID"""
-        return await self.db.assignments.find_one({"_id": ObjectId(assignment_id)})
+        assignment = await self.db.assignments.find_one({"_id": ObjectId(assignment_id)})
+        if assignment:
+            serialize_document(assignment)
+        return assignment
 
     async def get_user_assignments(
         self,
@@ -207,9 +237,9 @@ class Database:
 
         assignments = await self.db.assignments.find(query).to_list(length=100)
 
-        # Convert ObjectId to string for JSON serialization
+        # Convert ObjectId and datetime to strings for JSON serialization
         for assignment in assignments:
-            assignment["_id"] = str(assignment["_id"])
+            serialize_document(assignment)
 
         return assignments
 
@@ -248,7 +278,10 @@ class Database:
 
     async def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
         """Get task by ID"""
-        return await self.db.subtasks.find_one({"_id": ObjectId(task_id)})
+        task = await self.db.subtasks.find_one({"_id": ObjectId(task_id)})
+        if task:
+            serialize_document(task)
+        return task
 
     async def get_assignment_tasks(
         self,
@@ -259,9 +292,9 @@ class Database:
             {"assignment_id": assignment_id}
         ).sort("order_index", 1).to_list(length=100)
 
-        # Convert ObjectId to string
+        # Convert ObjectId and datetime to strings
         for task in tasks:
-            task["_id"] = str(task["_id"])
+            serialize_document(task)
 
         return tasks
 
@@ -275,3 +308,232 @@ class Database:
             {"_id": ObjectId(task_id)},
             {"$set": updates}
         )
+
+    async def delete_task(self, task_id: str, user_id: str) -> bool:
+        """
+        Delete a task by ID with authorization check.
+
+        Args:
+            task_id: Task ID to delete
+            user_id: User ID for authorization
+
+        Returns:
+            True if deleted, False if not found or unauthorized
+        """
+        # Verify ownership first
+        task = await self.get_task(task_id)
+        if not task or task.get("user_id") != user_id:
+            return False
+
+        result = await self.db.subtasks.delete_one({
+            "_id": ObjectId(task_id),
+            "user_id": user_id  # Double-check authorization
+        })
+        return result.deleted_count > 0
+
+    async def delete_assignment(self, assignment_id: str, user_id: str) -> Dict[str, int]:
+        """
+        Delete an assignment and all its tasks (CASCADE DELETE).
+
+        Args:
+            assignment_id: Assignment ID to delete
+            user_id: User ID for authorization
+
+        Returns:
+            Dict with counts: {"assignments_deleted": 1, "tasks_deleted": N}
+        """
+        # Verify ownership first
+        assignment = await self.get_assignment(assignment_id)
+        if not assignment or assignment.get("user_id") != user_id:
+            return {"assignments_deleted": 0, "tasks_deleted": 0}
+
+        # Delete all tasks first
+        tasks_result = await self.db.subtasks.delete_many({
+            "assignment_id": assignment_id,
+            "user_id": user_id
+        })
+
+        # Delete assignment
+        assignment_result = await self.db.assignments.delete_one({
+            "_id": ObjectId(assignment_id),
+            "user_id": user_id
+        })
+
+        return {
+            "assignments_deleted": assignment_result.deleted_count,
+            "tasks_deleted": tasks_result.deleted_count
+        }
+
+    async def delete_tasks_by_assignment(self, assignment_id: str, user_id: str) -> int:
+        """
+        Delete all tasks for an assignment without deleting the assignment itself.
+
+        Args:
+            assignment_id: Assignment whose tasks should be deleted
+            user_id: User ID for authorization
+
+        Returns:
+            Number of tasks deleted
+        """
+        # Verify assignment ownership
+        assignment = await self.get_assignment(assignment_id)
+        if not assignment or assignment.get("user_id") != user_id:
+            return 0
+
+        result = await self.db.subtasks.delete_many({
+            "assignment_id": assignment_id,
+            "user_id": user_id
+        })
+        return result.deleted_count
+
+    async def find_tasks(
+        self,
+        user_id: str,
+        query: str,
+        assignment_id: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find tasks by title search with optional filters.
+
+        Args:
+            user_id: User ID
+            query: Search term (case-insensitive partial match)
+            assignment_id: Optional assignment filter
+            status: Optional status filter
+
+        Returns:
+            List of matching tasks with IDs converted to strings
+        """
+        filters = {"user_id": user_id}
+
+        # Add title search (case-insensitive regex)
+        if query:
+            filters["title"] = {"$regex": query, "$options": "i"}
+
+        # Add optional filters
+        if assignment_id:
+            filters["assignment_id"] = assignment_id
+        if status:
+            filters["status"] = status
+
+        tasks = await self.db.subtasks.find(filters).sort("created_at", -1).to_list(length=100)
+
+        # Convert ObjectIds and datetime to strings
+        for task in tasks:
+            serialize_document(task)
+
+        return tasks
+
+    async def get_tasks_by_status(
+        self,
+        user_id: str,
+        status: str,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all tasks for a user filtered by status across all assignments.
+
+        Args:
+            user_id: User ID
+            status: Task status to filter by
+            limit: Maximum number of tasks to return
+
+        Returns:
+            List of tasks with assignment context
+        """
+        tasks = await self.db.subtasks.find({
+            "user_id": user_id,
+            "status": status
+        }).sort("created_at", -1).to_list(length=limit)
+
+        # Convert ObjectIds/datetime and add assignment info
+        for task in tasks:
+            serialize_document(task)
+
+            # Fetch assignment details for context
+            if task.get("assignment_id"):
+                assignment = await self.get_assignment(task["assignment_id"])
+                if assignment:
+                    task["assignment_title"] = assignment.get("title", "Unknown")
+                    task["assignment_subject"] = assignment.get("subject", "")
+
+        return tasks
+
+    async def get_upcoming_tasks(
+        self,
+        user_id: str,
+        days_ahead: int
+    ) -> List[Dict[str, Any]]:
+        """
+        Get tasks scheduled in the next N days.
+
+        Args:
+            user_id: User ID
+            days_ahead: Number of days to look ahead
+
+        Returns:
+            List of tasks sorted by scheduled_start
+        """
+        from datetime import timedelta
+
+        now = datetime.utcnow()
+        future = now + timedelta(days=days_ahead)
+
+        tasks = await self.db.subtasks.find({
+            "user_id": user_id,
+            "scheduled_start": {
+                "$gte": now,
+                "$lte": future
+            }
+        }).sort("scheduled_start", 1).to_list(length=100)
+
+        # Convert ObjectIds/datetime and add assignment context
+        for task in tasks:
+            serialize_document(task)
+
+            if task.get("assignment_id"):
+                assignment = await self.get_assignment(task["assignment_id"])
+                if assignment:
+                    task["assignment_title"] = assignment.get("title", "Unknown")
+
+        return tasks
+
+    async def get_all_user_tasks(
+        self,
+        user_id: str,
+        assignment_id: Optional[str] = None,
+        status_filter: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get ALL tasks for a user with optional filters.
+
+        Args:
+            user_id: User ID
+            assignment_id: Optional assignment filter
+            status_filter: Optional status filter ('all', 'pending', 'completed', etc.)
+
+        Returns:
+            List of all tasks with assignment context
+        """
+        filters = {"user_id": user_id}
+
+        if assignment_id:
+            filters["assignment_id"] = assignment_id
+
+        if status_filter and status_filter != "all":
+            filters["status"] = status_filter
+
+        tasks = await self.db.subtasks.find(filters).sort("created_at", -1).to_list(length=500)
+
+        # Convert ObjectIds/datetime and add assignment context
+        for task in tasks:
+            serialize_document(task)
+
+            if task.get("assignment_id"):
+                assignment = await self.get_assignment(task["assignment_id"])
+                if assignment:
+                    task["assignment_title"] = assignment.get("title", "Unknown")
+                    task["assignment_due_date"] = assignment.get("due_date")
+
+        return tasks

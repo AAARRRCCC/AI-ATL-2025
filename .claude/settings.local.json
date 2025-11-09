@@ -30,7 +30,9 @@
       "Bash(move ARCHITECTURE.md DATABASE.md SETUP.md CALENDAR_INTEGRATION.md HACKATHON_MVP.md PROJECT_OVERVIEW.md docs/archive/)",
       "Bash(git -C \"C:\\Users\\rbrad\\Desktop\\Individual Projects\\AI ATL 2025\" log --oneline -20)",
       "Bash(git -C \"C:\\Users\\rbrad\\Desktop\\Individual Projects\\AI ATL 2025\" diff HEAD -- backend/services/function_executor.py)",
-      "Bash(git -C \"C:\\Users\\rbrad\\Desktop\\Individual Projects\\AI ATL 2025\" show 33e0424 --stat)"
+      "Bash(git -C \"C:\\Users\\rbrad\\Desktop\\Individual Projects\\AI ATL 2025\" show 33e0424 --stat)",
+      "Bash(python -c:*)",
+      "Bash(python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []

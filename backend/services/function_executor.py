@@ -776,3 +776,466 @@ class FunctionExecutor:
                 "success": False,
                 "error": str(e)
             }
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 0: CRITICAL TASK VISIBILITY FUNCTIONS
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    async def get_assignment_tasks(
+        self,
+        user_id: str,
+        assignment_id: str
+    ) -> Dict[str, Any]:
+        """
+        Get all tasks for a specific assignment.
+
+        Args:
+            user_id: User ID
+            assignment_id: Assignment ID
+
+        Returns:
+            Dict with tasks list and assignment context
+        """
+        try:
+            # Verify assignment ownership
+            assignment = await self.db.get_assignment(assignment_id)
+            if not assignment:
+                return {"success": False, "error": "Assignment not found"}
+
+            if assignment.get("user_id") != user_id:
+                return {"success": False, "error": "Unauthorized"}
+
+            # Get all tasks
+            tasks = await self.db.get_assignment_tasks(assignment_id)
+
+            return {
+                "success": True,
+                "assignment_title": assignment.get("title"),
+                "assignment_id": assignment_id,
+                "tasks": tasks,
+                "count": len(tasks)
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def find_tasks(
+        self,
+        user_id: str,
+        query: str,
+        assignment_id: Optional[str] = None,
+        status: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Search for tasks by title.
+
+        Args:
+            user_id: User ID
+            query: Search term
+            assignment_id: Optional assignment filter
+            status: Optional status filter
+
+        Returns:
+            Dict with matching tasks
+        """
+        try:
+            tasks = await self.db.find_tasks(
+                user_id=user_id,
+                query=query,
+                assignment_id=assignment_id,
+                status=status
+            )
+
+            return {
+                "success": True,
+                "query": query,
+                "matches": tasks,
+                "count": len(tasks)
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 1: DELETE OPERATIONS
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    async def delete_task(
+        self,
+        user_id: str,
+        task_id: str,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Delete a specific task.
+
+        Args:
+            user_id: User ID
+            task_id: Task ID to delete
+            reason: Optional reason for logging
+
+        Returns:
+            Dict with success status
+        """
+        try:
+            # Get task details before deletion (for confirmation message)
+            task = await self.db.get_task(task_id)
+            if not task:
+                return {"success": False, "error": "Task not found"}
+
+            if task.get("user_id") != user_id:
+                return {"success": False, "error": "Unauthorized"}
+
+            task_title = task.get("title", "Unknown task")
+
+            # Delete the task
+            success = await self.db.delete_task(task_id, user_id)
+
+            if success:
+                return {
+                    "success": True,
+                    "message": f"Deleted task: '{task_title}'",
+                    "task_id": task_id,
+                    "reason": reason
+                }
+            else:
+                return {"success": False, "error": "Failed to delete task"}
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def delete_assignment(
+        self,
+        user_id: str,
+        assignment_id: str
+    ) -> Dict[str, Any]:
+        """
+        Delete an assignment and all its tasks (CASCADE).
+
+        Args:
+            user_id: User ID
+            assignment_id: Assignment ID to delete
+
+        Returns:
+            Dict with deletion counts
+        """
+        try:
+            # Get assignment details before deletion
+            assignment = await self.db.get_assignment(assignment_id)
+            if not assignment:
+                return {"success": False, "error": "Assignment not found"}
+
+            if assignment.get("user_id") != user_id:
+                return {"success": False, "error": "Unauthorized"}
+
+            assignment_title = assignment.get("title", "Unknown assignment")
+
+            # CASCADE DELETE
+            result = await self.db.delete_assignment(assignment_id, user_id)
+
+            if result["assignments_deleted"] > 0:
+                return {
+                    "success": True,
+                    "message": f"Deleted assignment '{assignment_title}' and {result['tasks_deleted']} tasks",
+                    "assignments_deleted": result["assignments_deleted"],
+                    "tasks_deleted": result["tasks_deleted"]
+                }
+            else:
+                return {"success": False, "error": "Failed to delete assignment"}
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def delete_tasks_by_assignment(
+        self,
+        user_id: str,
+        assignment_id: str
+    ) -> Dict[str, Any]:
+        """
+        Delete all tasks for an assignment (keep the assignment).
+
+        Args:
+            user_id: User ID
+            assignment_id: Assignment whose tasks to delete
+
+        Returns:
+            Dict with deletion count
+        """
+        try:
+            # Verify assignment ownership
+            assignment = await self.db.get_assignment(assignment_id)
+            if not assignment:
+                return {"success": False, "error": "Assignment not found"}
+
+            if assignment.get("user_id") != user_id:
+                return {"success": False, "error": "Unauthorized"}
+
+            # Delete all tasks
+            count = await self.db.delete_tasks_by_assignment(assignment_id, user_id)
+
+            # Reset total_estimated_hours on assignment
+            await self.db.update_assignment(assignment_id, {"total_estimated_hours": 0})
+
+            return {
+                "success": True,
+                "message": f"Deleted {count} tasks from assignment '{assignment.get('title')}'",
+                "tasks_deleted": count
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 2: EDIT OPERATIONS
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    async def update_task_properties(
+        self,
+        user_id: str,
+        task_id: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        estimated_duration: Optional[int] = None,
+        phase: Optional[str] = None,
+        intensity: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Update task properties (not status).
+
+        Args:
+            user_id: User ID
+            task_id: Task ID
+            title: New title (optional)
+            description: New description (optional)
+            estimated_duration: New duration in minutes (optional)
+            phase: New phase (optional)
+            intensity: New intensity (optional)
+
+        Returns:
+            Dict with success status and updated fields
+        """
+        try:
+            # Verify task ownership
+            task = await self.db.get_task(task_id)
+            if not task or task.get("user_id") != user_id:
+                return {"success": False, "error": "Task not found or unauthorized"}
+
+            # Build updates dict
+            updates = {}
+            if title:
+                updates["title"] = title
+            if description:
+                updates["description"] = description
+            if estimated_duration is not None:
+                # Apply user's max task duration clamp
+                preferences = await self.db.get_user_preferences(user_id)
+                study_settings = preferences.get("studySettings", {}) if preferences else {}
+                max_task_duration = study_settings.get("maxTaskDuration", 120)
+                updates["estimated_duration"] = max(15, min(estimated_duration, max_task_duration))
+            if phase:
+                updates["phase"] = phase
+            if intensity:
+                updates["intensity"] = intensity
+
+            if not updates:
+                return {"success": False, "error": "No updates provided"}
+
+            # Update task
+            await self.db.update_task(task_id, updates)
+
+            return {
+                "success": True,
+                "message": f"Updated task '{task.get('title')}': {', '.join(updates.keys())}",
+                "updated_fields": list(updates.keys())
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def update_assignment_properties(
+        self,
+        user_id: str,
+        assignment_id: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        due_date: Optional[str] = None,
+        difficulty: Optional[str] = None,
+        subject: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Update assignment properties.
+
+        Args:
+            user_id: User ID
+            assignment_id: Assignment ID
+            title: New title (optional)
+            description: New description (optional)
+            due_date: New due date ISO format (optional)
+            difficulty: New difficulty (optional)
+            subject: New subject (optional)
+
+        Returns:
+            Dict with success status and updated fields
+        """
+        try:
+            # Verify assignment ownership
+            assignment = await self.db.get_assignment(assignment_id)
+            if not assignment or assignment.get("user_id") != user_id:
+                return {"success": False, "error": "Assignment not found or unauthorized"}
+
+            # Build updates dict
+            updates = {}
+            if title:
+                updates["title"] = title
+            if description:
+                updates["description"] = description
+            if due_date:
+                updates["due_date"] = parser.parse(due_date)
+            if difficulty:
+                updates["difficulty_level"] = difficulty
+            if subject:
+                updates["subject"] = subject
+
+            if not updates:
+                return {"success": False, "error": "No updates provided"}
+
+            # Update assignment
+            await self.db.update_assignment(assignment_id, updates)
+
+            return {
+                "success": True,
+                "message": f"Updated assignment '{assignment.get('title')}': {', '.join(updates.keys())}",
+                "updated_fields": list(updates.keys())
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 3: ENHANCED QUERY OPERATIONS
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    async def get_tasks_by_status(
+        self,
+        user_id: str,
+        status: str,
+        limit: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Get all tasks for user filtered by status.
+
+        Args:
+            user_id: User ID
+            status: Task status to filter by
+            limit: Max tasks to return
+
+        Returns:
+            Dict with tasks list
+        """
+        try:
+            tasks = await self.db.get_tasks_by_status(user_id, status, limit)
+
+            return {
+                "success": True,
+                "status": status,
+                "tasks": tasks,
+                "count": len(tasks)
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def get_upcoming_tasks(
+        self,
+        user_id: str,
+        days_ahead: int
+    ) -> Dict[str, Any]:
+        """
+        Get tasks scheduled in the next N days.
+
+        Args:
+            user_id: User ID
+            days_ahead: Number of days to look ahead
+
+        Returns:
+            Dict with tasks list sorted by date
+        """
+        try:
+            tasks = await self.db.get_upcoming_tasks(user_id, days_ahead)
+
+            return {
+                "success": True,
+                "days_ahead": days_ahead,
+                "tasks": tasks,
+                "count": len(tasks)
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    async def get_all_user_tasks(
+        self,
+        user_id: str,
+        assignment_id: Optional[str] = None,
+        status_filter: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Get all tasks for user with optional filters.
+
+        Args:
+            user_id: User ID
+            assignment_id: Optional assignment filter
+            status_filter: Optional status filter
+
+        Returns:
+            Dict with tasks list
+        """
+        try:
+            tasks = await self.db.get_all_user_tasks(
+                user_id=user_id,
+                assignment_id=assignment_id,
+                status_filter=status_filter
+            )
+
+            return {
+                "success": True,
+                "tasks": tasks,
+                "count": len(tasks),
+                "filters": {
+                    "assignment_id": assignment_id,
+                    "status": status_filter
+                }
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }

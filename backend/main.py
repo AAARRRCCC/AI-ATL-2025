@@ -192,7 +192,10 @@ async def websocket_chat(websocket: WebSocket):
     except WebSocketDisconnect:
         print(f"WebSocket disconnected for user: {user_id}")
     except Exception as e:
+        import traceback
         print(f"WebSocket error for user {user_id}: {str(e)}")
+        print("Full traceback:")
+        traceback.print_exc()
         try:
             await websocket.send_json({
                 "type": "error",

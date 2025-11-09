@@ -192,6 +192,217 @@ AVAILABLE_FUNCTIONS = [
                 )
             }
         )
+    ),
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 0: CRITICAL TASK VISIBILITY FUNCTIONS (Enable everything else)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    glm.FunctionDeclaration(
+        name="get_assignment_tasks",
+        description="Get all tasks for a specific assignment with their IDs, titles, durations, and status. CRITICAL: Call this FIRST before trying to delete/edit/reference specific tasks. This is how you see task details and get task IDs.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "assignment_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="The assignment whose tasks you want to see"
+                )
+            },
+            required=["assignment_id"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="find_tasks",
+        description="Search for tasks by title, status, or assignment. Use when user references 'the research task' or 'my pending tasks' without specifying exact assignment. Returns tasks with IDs so you can then operate on them.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "query": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Search term to match against task titles (case-insensitive partial match, e.g., 'research' matches 'Research sources')"
+                ),
+                "assignment_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Optional: Filter to specific assignment. If omitted, searches all assignments."
+                ),
+                "status": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Optional: Filter by status ('pending', 'in_progress', 'completed', 'skipped')"
+                )
+            },
+            required=["query"]
+        )
+    ),
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 1: DELETE OPERATIONS
+    # ═══════════════════════════════════════════════════════════════════════════════
+    glm.FunctionDeclaration(
+        name="delete_task",
+        description="Delete a specific task permanently. Use when user says 'delete this task', 'remove that task', 'I don't need this anymore'. IMPORTANT: Get the task_id first using get_assignment_tasks or find_tasks. Confirm with user if ambiguous.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "task_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="The ID of the task to delete (obtained from get_assignment_tasks or find_tasks)"
+                ),
+                "reason": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Optional: Brief reason for logging (e.g., 'user no longer needs this', 'duplicate task')"
+                )
+            },
+            required=["task_id"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="delete_assignment",
+        description="Delete an entire assignment and ALL its associated tasks permanently. Use when user says 'delete this assignment', 'remove this project', 'cancel this'. WARNING: This is permanent and removes all tasks. Confirm with user before executing.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "assignment_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="The ID of the assignment to delete (obtained from get_user_assignments)"
+                )
+            },
+            required=["assignment_id"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="delete_tasks_by_assignment",
+        description="Delete ALL tasks for an assignment without deleting the assignment itself. Use when user says 'clear all tasks', 'redo the breakdown', 'start over with tasks'. The assignment remains and you can create new subtasks.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "assignment_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="The assignment whose tasks should be deleted"
+                )
+            },
+            required=["assignment_id"]
+        )
+    ),
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 2: EDIT OPERATIONS
+    # ═══════════════════════════════════════════════════════════════════════════════
+    glm.FunctionDeclaration(
+        name="update_task_properties",
+        description="Update task properties like title, description, duration, phase, or intensity. Use when user says 'change the duration to X', 'rename this task', 'make it less intense'. NOTE: For status changes (pending/completed), use update_task_status instead.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "task_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="The ID of the task to update"
+                ),
+                "title": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New task title (optional)"
+                ),
+                "description": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New task description (optional)"
+                ),
+                "estimated_duration": glm.Schema(
+                    type=glm.Type.INTEGER,
+                    description="New duration in minutes (optional, will be clamped to user's max task duration)"
+                ),
+                "phase": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New phase (Research, Planning, Execution, Review, etc.) (optional)"
+                ),
+                "intensity": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New intensity level: 'light', 'medium', or 'intense' (optional)"
+                )
+            },
+            required=["task_id"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="update_assignment_properties",
+        description="Update assignment properties like title, description, due date, difficulty, or subject. Use when user says 'move the due date to X', 'change the title', 'make it harder'.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "assignment_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="The ID of the assignment to update"
+                ),
+                "title": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New assignment title (optional)"
+                ),
+                "description": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New description (optional)"
+                ),
+                "due_date": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New due date in ISO format YYYY-MM-DD (optional)"
+                ),
+                "difficulty": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New difficulty: 'easy', 'medium', or 'hard' (optional)"
+                ),
+                "subject": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="New subject/category (optional)"
+                )
+            },
+            required=["assignment_id"]
+        )
+    ),
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # PHASE 3: ENHANCED QUERY OPERATIONS
+    # ═══════════════════════════════════════════════════════════════════════════════
+    glm.FunctionDeclaration(
+        name="get_tasks_by_status",
+        description="Get all tasks for the user filtered by status across ALL assignments. Use when user says 'show my pending tasks', 'what have I completed', 'list incomplete work'. Returns tasks with assignment context.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "status": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Task status to filter by: 'pending', 'in_progress', 'completed', or 'skipped'"
+                ),
+                "limit": glm.Schema(
+                    type=glm.Type.INTEGER,
+                    description="Optional: Max number of tasks to return (default 50)"
+                )
+            },
+            required=["status"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="get_upcoming_tasks",
+        description="Get tasks scheduled in the next N days, sorted chronologically. Use when user says 'what's coming up', 'show this week's tasks', 'what do I have soon'.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "days_ahead": glm.Schema(
+                    type=glm.Type.INTEGER,
+                    description="Number of days to look ahead (e.g., 7 for this week, 3 for next few days)"
+                )
+            },
+            required=["days_ahead"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="get_all_user_tasks",
+        description="Get ALL tasks for the user across all assignments, optionally filtered by assignment. Use when user says 'show all my tasks', 'list everything I have to do'. Returns comprehensive task list with assignment context.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "assignment_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Optional: Filter to specific assignment. If omitted, returns all tasks."
+                ),
+                "status_filter": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Optional: Filter by status ('pending', 'in_progress', 'completed', 'all'). Default is 'all'."
+                )
+            }
+        )
     )
 ]
 

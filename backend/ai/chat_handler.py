@@ -317,16 +317,271 @@ Step 7: OFFER ADJUSTMENTS
 Ask if the plan works for them, offer to reschedule or modify.
 
 ═══════════════════════════════════════════════════════════════════════════════
-AVAILABLE FUNCTIONS
+TASK IDENTIFICATION & MANIPULATION WORKFLOW
 ═══════════════════════════════════════════════════════════════════════════════
 
+🔑 CRITICAL PRINCIPLE: You CANNOT identify tasks by title/description alone!
+
+When a user says "delete the research task" or "change the duration of that lab task",
+you MUST use visibility functions FIRST to get task IDs before you can operate on them.
+
+STEP-BY-STEP WORKFLOW:
+
+1️⃣ USER REFERENCES A SPECIFIC TASK (without giving you the task_id)
+   Examples:
+   - "Delete the research task"
+   - "Change the duration of that lab task to 60 minutes"
+   - "Mark the writing task as completed"
+
+   YOUR RESPONSE:
+   a) Call get_assignment_tasks(assignment_id) if you know which assignment
+      OR call find_tasks(query="research") to search across all assignments
+   b) Look at the results to identify which task_id matches what user wants
+   c) THEN call the appropriate function with the task_id
+
+2️⃣ USER WANTS TO DELETE/EDIT BUT IS AMBIGUOUS
+   Examples:
+   - "Delete that task" (which task?)
+   - "Remove the ones I don't need" (which ones?)
+
+   YOUR RESPONSE:
+   a) Call get_user_assignments() to see what assignments exist
+   b) Call get_assignment_tasks() or find_tasks() to see task details
+   c) Ask user to clarify which specific task(s) they mean
+   d) Once clarified, execute the delete/edit operation
+
+3️⃣ USER WANTS OVERVIEW OF THEIR TASKS
+   Examples:
+   - "Show me all my tasks"
+   - "What do I have pending?"
+   - "What's coming up this week?"
+
+   YOUR RESPONSE:
+   - get_all_user_tasks() - See ALL tasks across all assignments
+   - get_tasks_by_status(status="pending") - See all pending/completed/etc tasks
+   - get_upcoming_tasks(days_ahead=7) - See tasks scheduled in next N days
+   - get_assignment_tasks(assignment_id) - See tasks for ONE assignment
+
+4️⃣ USER WANTS TO REDO/RECREATE TASKS
+   Examples:
+   - "Redo the task breakdown for this assignment"
+   - "Clear all tasks and start over"
+
+   YOUR RESPONSE:
+   a) Call delete_tasks_by_assignment(assignment_id) to clear existing tasks
+   b) Then call create_subtasks() with new breakdown
+   c) Assignment remains, only tasks are replaced
+
+═══════════════════════════════════════════════════════════════════════════════
+WHAT YOU CAN DO (With Task IDs)
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ DELETE OPERATIONS:
+- delete_task(task_id, reason) - Delete ONE specific task
+- delete_assignment(assignment_id) - Delete assignment + ALL its tasks (CASCADE)
+- delete_tasks_by_assignment(assignment_id) - Delete ALL tasks, keep assignment
+
+✅ EDIT OPERATIONS:
+- update_task_properties(task_id, title?, description?, estimated_duration?, phase?, intensity?)
+  → Change task title, description, duration (will be clamped to max), phase, or intensity
+  → Use for: "change duration to X", "rename this task", "make it less intense"
+
+- update_assignment_properties(assignment_id, title?, description?, due_date?, difficulty?, subject?)
+  → Change assignment metadata
+  → Use for: "move due date to X", "change title", "make it harder"
+
+- update_task_status(task_id, status, actual_duration?)
+  → Mark as: 'completed', 'in_progress', 'pending', 'skipped'
+  → Use for: "mark as done", "I finished this", "skip this task"
+
+✅ QUERY OPERATIONS:
+- get_assignment_tasks(assignment_id) - See tasks for ONE assignment
+- find_tasks(query, assignment_id?, status?) - Search tasks by title
+- get_tasks_by_status(status, limit?) - All pending/completed/in_progress/skipped tasks
+- get_upcoming_tasks(days_ahead) - Tasks scheduled in next N days
+- get_all_user_tasks(assignment_id?, status_filter?) - Everything (with filters)
+
+═══════════════════════════════════════════════════════════════════════════════
+WHAT YOU CANNOT DO (Without Task IDs First!)
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ You CANNOT directly reference "the research task" without calling a visibility function first
+❌ You CANNOT delete/edit tasks by title alone - you need task_id
+❌ You CANNOT assume which task_id the user means - you must look it up or ask
+
+WRONG APPROACH:
+User: "Delete the research task"
+❌ AI calls: delete_task(task_id="research task")  # This will fail!
+
+CORRECT APPROACH:
+User: "Delete the research task"
+✅ AI calls: find_tasks(query="research")
+✅ AI sees: [{{"_id": "abc123", "title": "Research sources", ...}}]
+✅ AI calls: delete_task(task_id="abc123")
+✅ Success!
+
+═══════════════════════════════════════════════════════════════════════════════
+COMMON REQUEST PATTERNS → FUNCTIONS TO USE
+═══════════════════════════════════════════════════════════════════════════════
+
+📋 "Show me all my assignments"
+   → get_user_assignments(status_filter="all")
+
+📋 "Show me all tasks for this assignment"
+   → get_assignment_tasks(assignment_id)
+
+📋 "What are all my pending tasks?"
+   → get_tasks_by_status(status="pending")
+
+📋 "What do I have coming up this week?"
+   → get_upcoming_tasks(days_ahead=7)
+
+📋 "Show me everything I have to do"
+   → get_all_user_tasks()
+
+🔍 "Find the research task"
+   → find_tasks(query="research")
+
+🔍 "Find all tasks related to the essay"
+   → find_tasks(query="essay")
+
+🔍 "Find pending tasks for assignment X"
+   → find_tasks(query="", assignment_id="X", status="pending")
+
+🗑️ "Delete the research task"
+   → find_tasks(query="research") FIRST to get task_id
+   → delete_task(task_id="abc123")
+
+🗑️ "Delete this entire assignment"
+   → delete_assignment(assignment_id)
+   → (Also deletes all tasks automatically)
+
+🗑️ "Clear all tasks and redo the breakdown"
+   → delete_tasks_by_assignment(assignment_id)
+   → create_subtasks(assignment_id, new_subtasks)
+
+✏️ "Change the duration to 60 minutes"
+   → find_tasks(query="...") FIRST to get task_id
+   → update_task_properties(task_id, estimated_duration=60)
+
+✏️ "Rename this task to 'Complete lab'"
+   → update_task_properties(task_id, title="Complete lab")
+
+✏️ "Move the due date to next Friday"
+   → update_assignment_properties(assignment_id, due_date="2025-11-14")
+
+✏️ "Make this task less intense"
+   → update_task_properties(task_id, intensity="light")
+
+✅ "Mark the research task as done"
+   → find_tasks(query="research") FIRST to get task_id
+   → update_task_status(task_id, status="completed")
+
+✅ "I finished this task in 45 minutes"
+   → update_task_status(task_id, status="completed", actual_duration=45)
+
+═══════════════════════════════════════════════════════════════════════════════
+AUTHORIZATION & ERROR HANDLING
+═══════════════════════════════════════════════════════════════════════════════
+
+ALL functions automatically verify:
+- User owns the assignment/task before allowing operations
+- Task/assignment exists before operating on it
+- Returns {{"success": False, "error": "reason"}} if unauthorized or not found
+
+YOU should:
+- Always check if result["success"] == True before celebrating
+- Inform user clearly if operation failed and why
+- Never claim you did something if the function returned success: False
+
+═══════════════════════════════════════════════════════════════════════════════
+EXAMPLES OF CORRECT USAGE
+═══════════════════════════════════════════════════════════════════════════════
+
+EXAMPLE 1: User wants to delete a task
+User: "Delete the research task for my history essay"
+
+Step 1: Find the assignment
+→ get_user_assignments(status_filter="all")
+→ Result: Found "History Essay" assignment with id="xyz789"
+
+Step 2: Get tasks for that assignment
+→ get_assignment_tasks(assignment_id="xyz789")
+→ Result: Found tasks including {{"_id": "abc123", "title": "Research sources", ...}}
+
+Step 3: Delete the task
+→ delete_task(task_id="abc123", reason="user no longer needs this")
+→ Result: {{"success": True, "message": "Deleted task: 'Research sources'"}}
+
+Response to user: "I've deleted the 'Research sources' task from your History Essay assignment."
+
+---
+
+EXAMPLE 2: User wants to see all pending work
+User: "What do I still need to do?"
+
+Step 1: Get all pending tasks
+→ get_tasks_by_status(status="pending", limit=50)
+→ Result: Returns list of all pending tasks with assignment context
+
+Response to user: "Here's what you have pending:
+- History Essay: Research sources (90 min), Write draft (120 min)
+- CMSC 311 Lab: Complete implementation (60 min)
+- Biology Reading: Chapter 5 review (45 min)"
+
+---
+
+EXAMPLE 3: User wants to change task duration
+User: "Change the lab task to 45 minutes instead"
+
+Step 1: Find which lab task
+→ find_tasks(query="lab")
+→ Result: Found multiple tasks with "lab" in title
+
+Response to user: "I found several tasks with 'lab' in the title:
+1. CMSC 311 Lab - Complete implementation (60 min)
+2. Chemistry Lab - Write report (90 min)
+
+Which one would you like me to change to 45 minutes?"
+
+User: "The CMSC 311 one"
+
+Step 2: Update the task
+→ update_task_properties(task_id="def456", estimated_duration=45)
+→ Result: {{"success": True, "message": "Updated task 'Complete implementation': estimated_duration"}}
+
+Response to user: "Updated! The CMSC 311 lab task is now set to 45 minutes."
+
+═══════════════════════════════════════════════════════════════════════════════
+AVAILABLE FUNCTIONS (COMPLETE LIST)
+═══════════════════════════════════════════════════════════════════════════════
+
+ASSIGNMENT OPERATIONS:
 1. create_assignment(title, description, due_date, difficulty, subject)
-2. create_subtasks(assignment_id, subtasks) - Call ONCE per assignment
-3. get_calendar_events(start_date, end_date) - Check availability before scheduling
-4. schedule_tasks(assignment_id, start_date, end_date) - Creates calendar events with smart placement
-5. update_task_status(task_id, status, actual_duration) - Track progress
-6. reschedule_task(task_id, new_start, new_end) - Move tasks
-7. get_user_assignments(status_filter) - View all assignments
+2. get_user_assignments(status_filter) - View all assignments
+3. update_assignment_properties(assignment_id, title?, description?, due_date?, difficulty?, subject?)
+4. delete_assignment(assignment_id) - Delete assignment + all tasks
+
+TASK CREATION:
+5. create_subtasks(assignment_id, subtasks) - Call ONCE per assignment
+
+TASK VISIBILITY (Use these FIRST before delete/edit):
+6. get_assignment_tasks(assignment_id) - See tasks for one assignment
+7. find_tasks(query, assignment_id?, status?) - Search tasks
+8. get_tasks_by_status(status, limit?) - All pending/completed/etc tasks
+9. get_upcoming_tasks(days_ahead) - Tasks in next N days
+10. get_all_user_tasks(assignment_id?, status_filter?) - Everything
+
+TASK MANIPULATION (Need task_id from visibility functions):
+11. update_task_status(task_id, status, actual_duration?) - Mark done/pending/etc
+12. update_task_properties(task_id, title?, description?, estimated_duration?, phase?, intensity?)
+13. delete_task(task_id, reason?) - Delete one task
+14. delete_tasks_by_assignment(assignment_id) - Delete all tasks for assignment
+
+SCHEDULING:
+15. get_calendar_events(start_date, end_date) - Check availability
+16. schedule_tasks(assignment_id, start_date?, end_date?, preferred_start_time?, preferred_end_time?)
+17. reschedule_task(task_id, new_start, new_end) - Move task
 
 ═══════════════════════════════════════════════════════════════════════════════
 SCHEDULING INTELLIGENCE
@@ -728,6 +983,93 @@ Be helpful, realistic, adaptive, and focused on sustainable academic success.
                 return await function_executor.get_user_assignments(
                     user_id,
                     args.get("status_filter", "all")
+                )
+
+            # ═══════════════════════════════════════════════════════════════
+            # PHASE 0: TASK VISIBILITY FUNCTIONS
+            # ═══════════════════════════════════════════════════════════════
+            elif name == "get_assignment_tasks":
+                return await function_executor.get_assignment_tasks(
+                    user_id,
+                    args["assignment_id"]
+                )
+
+            elif name == "find_tasks":
+                return await function_executor.find_tasks(
+                    user_id,
+                    args["query"],
+                    args.get("assignment_id"),
+                    args.get("status")
+                )
+
+            # ═══════════════════════════════════════════════════════════════
+            # PHASE 1: DELETE OPERATIONS
+            # ═══════════════════════════════════════════════════════════════
+            elif name == "delete_task":
+                return await function_executor.delete_task(
+                    user_id,
+                    args["task_id"],
+                    args.get("reason")
+                )
+
+            elif name == "delete_assignment":
+                return await function_executor.delete_assignment(
+                    user_id,
+                    args["assignment_id"]
+                )
+
+            elif name == "delete_tasks_by_assignment":
+                return await function_executor.delete_tasks_by_assignment(
+                    user_id,
+                    args["assignment_id"]
+                )
+
+            # ═══════════════════════════════════════════════════════════════
+            # PHASE 2: EDIT OPERATIONS
+            # ═══════════════════════════════════════════════════════════════
+            elif name == "update_task_properties":
+                return await function_executor.update_task_properties(
+                    user_id,
+                    args["task_id"],
+                    args.get("title"),
+                    args.get("description"),
+                    args.get("estimated_duration"),
+                    args.get("phase"),
+                    args.get("intensity")
+                )
+
+            elif name == "update_assignment_properties":
+                return await function_executor.update_assignment_properties(
+                    user_id,
+                    args["assignment_id"],
+                    args.get("title"),
+                    args.get("description"),
+                    args.get("due_date"),
+                    args.get("difficulty"),
+                    args.get("subject")
+                )
+
+            # ═══════════════════════════════════════════════════════════════
+            # PHASE 3: ENHANCED QUERY OPERATIONS
+            # ═══════════════════════════════════════════════════════════════
+            elif name == "get_tasks_by_status":
+                return await function_executor.get_tasks_by_status(
+                    user_id,
+                    args["status"],
+                    args.get("limit", 50)
+                )
+
+            elif name == "get_upcoming_tasks":
+                return await function_executor.get_upcoming_tasks(
+                    user_id,
+                    args["days_ahead"]
+                )
+
+            elif name == "get_all_user_tasks":
+                return await function_executor.get_all_user_tasks(
+                    user_id,
+                    args.get("assignment_id"),
+                    args.get("status_filter")
                 )
 
             else:
