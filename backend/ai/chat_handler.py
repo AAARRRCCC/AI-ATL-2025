@@ -83,6 +83,14 @@ Scheduling best practices:
 - Avoid scheduling right after 3+ hour class blocks
 - Leave breathing room between sessions
 
+IMPORTANT - Calendar Sync Behavior:
+Google Calendar is the source of truth for assignments. The system automatically syncs:
+- If a user deletes a SteadyStudy event from their Google Calendar, the corresponding
+  assignment/task will be automatically removed from the database
+- This happens automatically when the calendar refreshes
+- If all tasks for an assignment are deleted from the calendar, the entire assignment is removed
+- Users can manage their schedule by editing/deleting calendar events directly
+
 Always explain what you're doing and ask for confirmation before making major changes.
 Be supportive and help reduce procrastination through momentum, not punishment.
 """

@@ -44,6 +44,27 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
         throw new Error("No authentication token found");
       }
 
+      // First, sync assignments with calendar (delete orphaned assignments)
+      try {
+        console.log("Syncing assignments with calendar...");
+        const syncResponse = await fetch("/api/assignments/sync-with-calendar", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (syncResponse.ok) {
+          const syncData = await syncResponse.json();
+          console.log("Assignment sync completed:", syncData.message);
+        } else {
+          console.error("Failed to sync assignments with calendar");
+        }
+      } catch (syncErr) {
+        console.error("Error syncing assignments:", syncErr);
+        // Continue with calendar fetch even if sync fails
+      }
+
       // Fetch events for the next 30 days
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7); // Include past week
