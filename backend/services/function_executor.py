@@ -418,6 +418,18 @@ class FunctionExecutor:
                         "intensity": task.get("intensity", "medium")
                     }
 
+                    print(f"\n{'='*60}")
+                    print(f"📅 CREATING CALENDAR EVENT (Proposed Schedule Mode)")
+                    print(f"   Task ID: {task_id}")
+                    print(f"   Title: {full_title}")
+                    print(f"   Start: {proposed_start.isoformat()}")
+                    print(f"   End: {proposed_end.isoformat()}")
+                    print(f"   Duration: {task_data['duration_minutes']} minutes")
+                    print(f"   API URL: {self.api_base_url}/api/calendar/create-events")
+                    print(f"   Auth token present: {bool(self.auth_token)}")
+                    print(f"   Auth token (first 20 chars): {self.auth_token[:20] if self.auth_token else 'None'}...")
+                    print(f"{'='*60}\n")
+
                     try:
                         # Call calendar API to create event
                         async with httpx.AsyncClient() as client:
@@ -428,10 +440,27 @@ class FunctionExecutor:
                                 timeout=30.0
                             )
 
+                            print(f"\n{'='*60}")
+                            print(f"📡 CALENDAR API RESPONSE")
+                            print(f"   Status Code: {response.status_code}")
+                            print(f"   Response Body: {response.text}")
+                            print(f"{'='*60}\n")
+
                             if response.status_code == 200:
                                 result = response.json()
                                 created_events = result.get("created_events", [])
                                 errors = result.get("errors", [])
+
+                                print(f"\n{'='*60}")
+                                print(f"📊 CALENDAR API RESULT")
+                                print(f"   Created events: {len(created_events)}")
+                                print(f"   Errors: {len(errors)}")
+                                if created_events:
+                                    print(f"   Event ID: {created_events[0].get('id')}")
+                                    print(f"   Event details: {created_events[0]}")
+                                if errors:
+                                    print(f"   Error details: {errors}")
+                                print(f"{'='*60}\n")
 
                                 if len(created_events) > 0:
                                     # Success - update task in database
@@ -449,7 +478,7 @@ class FunctionExecutor:
                                         "created": True,
                                         "event_id": created_events[0].get("id")
                                     })
-                                    print(f"   ✅ Successfully scheduled '{task_title}'")
+                                    print(f"   ✅ Successfully scheduled '{task_title}' (Event ID: {created_events[0].get('id')})")
                                 else:
                                     # Event creation failed
                                     error_msg = errors[0] if errors else "Unknown error"
@@ -460,7 +489,7 @@ class FunctionExecutor:
                                         "error": str(error_msg)
                                     })
                             else:
-                                error_msg = f"API returned status {response.status_code}"
+                                error_msg = f"API returned status {response.status_code}: {response.text[:200]}"
                                 print(f"   ❌ Calendar API error: {error_msg}")
                                 failed_tasks.append({
                                     "task_id": task_id,
@@ -469,7 +498,15 @@ class FunctionExecutor:
                                 })
 
                     except Exception as e:
-                        print(f"   ❌ Exception creating calendar event: {e}")
+                        import traceback
+                        error_traceback = traceback.format_exc()
+                        print(f"\n{'='*60}")
+                        print(f"❌ EXCEPTION CREATING CALENDAR EVENT")
+                        print(f"   Exception Type: {type(e).__name__}")
+                        print(f"   Exception Message: {str(e)}")
+                        print(f"\nFull Traceback:")
+                        print(error_traceback)
+                        print(f"{'='*60}\n")
                         failed_tasks.append({
                             "task_id": task_id,
                             "task_title": task_title,
