@@ -1,368 +1,380 @@
+<div align="center">
+
 # SteadyStudy
 
-> AI-Powered Study Planning System for Students | AI ATL 2025 Hackathon
+### AI-Powered Study Planning for Modern Students
 
-SteadyStudy is an intelligent study planning application that uses AI to break down assignments into manageable tasks, automatically schedules them based on Google Calendar availability, and provides a conversational interface for managing your academic workload. Built with Next.js 15, FastAPI, and Google Gemini AI.
+*An intelligent study companion that transforms overwhelming assignments into achievable daily tasks*
 
-## 🎪 Demo Mode
+[![Next.js](https://img.shields.io/badge/Next.js-15.0.3-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-**⚡ This project is optimized for local hackathon demonstration**
-
-- **Focus**: Feature-rich, impressive demo over production security
-- **Deployment**: Local only (no public hosting)
-- **Security**: Intentionally simplified for rapid development
-- **Target**: Show judges what AI-powered study planning can do!
-
-**Quick Demo Setup**: See `DEMO.md` for step-by-step presentation guide
+[Features](#features) • [Quick Start](#quick-start) • [Tech Stack](#tech-stack) • [Documentation](#documentation)
 
 ---
 
-## 🎯 Project Status
+</div>
 
-**Phase**: Hackathon MVP - Demo Focused
+## Overview
 
-**What's Working**:
-- ✅ User authentication (JWT + Google OAuth)
-- ✅ AI chatbot with Gemini (WebSocket-based)
-- ✅ Google Calendar integration (read/write events)
-- ✅ Interactive drag-and-drop calendar
-- ✅ User preferences system
-- ✅ Dark/light theme support
-- ✅ Professional landing page
+**SteadyStudy** is an intelligent study planning application built for the **AI ATL 2025 Hackathon**. It uses Google's Gemini AI to break down complex assignments into manageable tasks, automatically schedules them based on your Google Calendar availability, and provides a conversational interface for managing your entire academic workload.
 
-**What's In Progress**:
-- 🚧 Backend function executor (AI → database operations)
-- 🚧 Task management UI
-- 🚧 Auto-rescheduling logic
+### The Problem We Solve
 
-**See**: `IMPLEMENTATION_STATUS.md` for detailed feature breakdown
+Students often struggle with:
+-  **Breaking down large assignments** into actionable steps
+-  **Finding time to study** amidst busy schedules
+-  **Adapting plans** when life gets in the way
+-  **Staying motivated** without visible progress tracking
+
+### Our Solution
+
+SteadyStudy combines AI intelligence with calendar integration to:
+-  **Intelligently decompose** assignments into phases
+-  **Auto-schedule** study sessions in your actual free time
+-  **Conversational interface** - just tell the AI what's due and when
+-  **Track progress** and maintain study momentum
 
 ---
 
-## 🚀 Quick Start
+## Features
+
+###  AI-Powered Chat Interface
+- **Natural language interaction** with Google Gemini
+- **Function calling** - AI can create assignments, schedule tasks, and query your calendar
+- **Real-time responses** via WebSocket connection
+- **Context-aware** suggestions based on your study history
+
+###  Smart Calendar Integration
+- **Two-way Google Calendar sync** - read existing events, write study sessions
+- **Drag-and-drop rescheduling** - visual calendar interface
+- **Intelligent time-finding** - analyzes free blocks in your schedule
+- **Color-coded events** - distinguish task types at a glance
+
+###  Personalized Preferences
+- **Available days** - work around your schedule
+- **Task difficulty levels** - AI adjusts time allocation
+- **Theme support** - dark mode for late-night study sessions
+
+###  Secure Authentication
+- **Email/password** registration and login
+- **Google OAuth** for seamless calendar access
+- **JWT tokens** with secure session management
+- **Protected routes** - your data stays private
+
+---
+
+### Typical User Flow
+
+1. **Landing Page** - Professional hero section with animated background  
+2. **Create Account** - Sign up with email/password in seconds  
+3. **Connect Calendar** - One-click Google OAuth integration  
+4. **Set Preferences** - Choose your ideal study times and available days  
+5. **Chat with AI** - "I have a 10-page research paper due next Friday"  
+6. **AI Planning** - Breaks down into research, outline, draft, and revision phases  
+7. **View Schedule** - Auto-scheduled study sessions appear in your calendar  
+8. **Drag to Adjust** - Reschedule sessions with visual calendar interface  
+9. **Track Progress** - Mark tasks complete and watch momentum build  
+
+---
+
+##  Quick Start
 
 ### Prerequisites
 
-- **Node.js** 18+ (using v20.x recommended)
-- **Python** 3.11 or 3.12 (avoid 3.14 - dependency issues)
-- **MongoDB Atlas** account (free tier)
-- **Google Cloud Console** project (for OAuth + Calendar API)
-- **Google Gemini API** key
+Before you begin, ensure you have:
 
-### Environment Setup
+| Requirement | Version | Notes |
+|------------|---------|-------|
+| **Node.js** | 18+ (20.x recommended) | Download from [nodejs.org](https://nodejs.org/) |
+| **Python** | 3.11 or 3.12 | Avoid 3.14 (dependency issues) |
+| **MongoDB Atlas** | Free tier | Sign up at [mongodb.com](https://www.mongodb.com/cloud/atlas) |
+| **Google Cloud** | Free project | For OAuth + Calendar API |
+| **Gemini API Key** | Free tier | Get from [ai.google.dev](https://ai.google.dev/) |
 
-1. **Clone and install frontend dependencies**:
+### Installation
+
+#### Clone the Repository
+
+```bash
+git clone https://github.com/AAARRRCCC/AI-ATL-2025.git
+cd AI-ATL-2025
+```
+
+#### Frontend Setup
+
+Install dependencies:
 ```bash
 npm install --legacy-peer-deps
 ```
-*Note: `--legacy-peer-deps` required due to React 19 RC*
 
-2. **Set up frontend environment variables**:
+> **Note:** `--legacy-peer-deps` is required due to React 19 RC
 
-Create `.env.local` in project root:
+Create `.env.local` in the project root:
 ```env
-MONGODB_URI=mongodb+srv://your-cluster.mongodb.net/
+# Database
+MONGODB_URI=mongodb+srv://your-username:your-password@your-cluster.mongodb.net/
 MONGODB_DB_NAME=study-autopilot
-JWT_SECRET=your-secret-key-min-32-chars
+
+# Authentication
+JWT_SECRET=your-secret-key-min-32-chars-long
 JWT_EXPIRES_IN=7d
-GOOGLE_CLIENT_ID=your-google-client-id
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+
+# App Config
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-3. **Set up backend**:
+#### Backend Setup
+
+Navigate to backend directory:
 ```bash
 cd backend
+```
+
+Create virtual environment:
+```bash
+# Windows
 python -m venv venv
-venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Mac/Linux
+venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Install dependencies:
+```bash
 pip install -r requirements.txt
 ```
 
-4. **Set up backend environment variables**:
-
 Create `backend/.env`:
 ```env
-MONGODB_URI=mongodb+srv://your-cluster.mongodb.net/
+# Database
+MONGODB_URI=mongodb+srv://your-username:your-password@your-cluster.mongodb.net/
+
+# AI
 GEMINI_API_KEY=your-gemini-api-key
-GOOGLE_CLIENT_ID=your-google-client-id
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-JWT_SECRET=your-secret-key-min-32-chars
+
+# Security
+JWT_SECRET=your-secret-key-min-32-chars-long
+
+# Server
 HOST=0.0.0.0
 PORT=8000
 FRONTEND_URL=http://localhost:3000
 ENVIRONMENT=development
 ```
 
+#### Google Cloud Console Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable **Google Calendar API**
+4. Configure **OAuth consent screen**
+5. Create **OAuth 2.0 credentials** (Web application)
+   - Authorized redirect URIs: `http://localhost:3000/api/auth/google/callback`
+6. Copy Client ID and Client Secret to your `.env` files
+
 ### Running the Application
 
-**Terminal 1 - Frontend**:
+You'll need **two terminal windows**:
+
+**Terminal 1 - Frontend (Next.js)**
 ```bash
 npm run dev
 ```
-→ http://localhost:3000
+Frontend: http://localhost:3000
 
-**Terminal 2 - Backend**:
+**Terminal 2 - Backend (FastAPI)**
 ```bash
 cd backend
-venv\Scripts\activate
+# Activate venv first (see step 3)
 python main.py
 ```
-→ http://localhost:8000
+Backend: http://localhost:8000
 
-### First-Time Setup
+### First-Time Usage
 
-1. Visit http://localhost:3000
-2. Click "Get Started" → Sign up with email/password
-3. Go to Dashboard → Connect Google Calendar
-4. Set your preferences (study times, available days)
-5. Start chatting with the AI to create assignments
+1. Visit **http://localhost:3000**
+2. Click **"Get Started"** → Create account with email/password
+3. Navigate to **Dashboard** → Click **"Connect Google Calendar"**
+4. Complete Google OAuth flow
+5. Go to **Preferences** → Set your study times and available days
+6. Return to **Dashboard** → Start chatting with the AI!
+
+**Example prompt:**
+> "I have a research paper on machine learning due November 20th. It needs to be 15 pages with at least 10 sources."
 
 ---
 
-## 🏗️ Tech Stack
+##  Tech Stack
+
+<div align="center">
 
 ### Frontend
-- **Next.js 15.0.3** - React framework with App Router
-- **React 19 RC** - Latest React with concurrent features
-- **TypeScript** - Type safety throughout
-- **Tailwind CSS** - Utility-first styling
-- **Framer Motion** - Animations and transitions
-- **React Big Calendar** - Drag-and-drop calendar component
-- **React Markdown** - Rich message rendering in chat
-- **MongoDB Driver** - Direct database access from API routes
+![Next.js](https://img.shields.io/badge/Next.js-15.0.3-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19.0_RC-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)
 
 ### Backend
-- **FastAPI 0.104.1** - Modern Python web framework
-- **Uvicorn** - ASGI server with WebSocket support
-- **Google Generative AI** - Gemini API for chat and function calling
-- **Motor** - Async MongoDB driver
-- **Python-Jose** - JWT token handling
-- **Passlib + Bcrypt** - Password hashing
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?logo=fastapi)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python)
+![Uvicorn](https://img.shields.io/badge/Uvicorn-ASGI-499848)
 
 ### Services & APIs
-- **MongoDB Atlas** - NoSQL database (cloud)
-- **Google Gemini** - AI language model (gemini-flash-latest)
-- **Google Calendar API** - Calendar read/write operations
-- **Google OAuth 2.0** - User authentication and authorization
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb)
+![Google Gemini](https://img.shields.io/badge/Google-Gemini_AI-4285F4?logo=google)
+![Google Calendar](https://img.shields.io/badge/Google-Calendar_API-4285F4?logo=google-calendar)
+
+</div>
+
+### Key Libraries
+
+**Frontend:**
+- **React Big Calendar** - Interactive drag-and-drop calendar UI
+- **Framer Motion** - Smooth animations and transitions
+- **React Markdown** - Rich text rendering in chat messages
+- **Lucide React** - Beautiful icon library
+- **React Hot Toast** - Elegant notification system
+
+**Backend:**
+- **Motor** - Async MongoDB driver for Python
+- **Google Generative AI** - Gemini API integration
+- **Python-Jose** - JWT token handling
+- **Passlib + Bcrypt** - Secure password hashing
+- **Uvicorn** - High-performance ASGI server with WebSocket support
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-AI ATL 2025/
-├── app/                          # Next.js App Router
-│   ├── api/                      # API Routes (Next.js endpoints)
-│   │   ├── auth/                 # Authentication endpoints
-│   │   │   ├── login/           # POST - User login
-│   │   │   ├── signup/          # POST - User registration
-│   │   │   ├── me/              # GET - Current user info
-│   │   │   └── google/          # Google OAuth flow
-│   │   ├── calendar/            # Calendar operations
-│   │   │   ├── events/          # GET - Fetch calendar events
-│   │   │   ├── create/          # POST - Create event
-│   │   │   ├── update/          # PUT - Update event
-│   │   │   ├── delete/          # DELETE - Delete event
-│   │   │   └── free-blocks/     # GET - Find free time slots
-│   │   ├── assignments/         # Assignment management
-│   │   ├── tasks/               # Task operations
-│   │   ├── chat/                # Chat utilities
-│   │   └── preferences/         # User preferences CRUD
-│   ├── auth/                     # Auth page (login/signup UI)
-│   ├── dashboard/                # Main dashboard (protected)
-│   ├── preferences/              # User settings page
-│   ├── layout.tsx                # Root layout with providers
-│   ├── page.tsx                  # Landing page
-│   └── globals.css               # Global styles + Tailwind
+AI-ATL-2025/
+├── 📁 app/                        # Next.js App Router
+│   ├── 📁 api/                    # API Routes (Next.js endpoints)
+│   │   ├── auth/                  # Login, signup, Google OAuth
+│   │   ├── calendar/              # Calendar CRUD operations
+│   │   ├── assignments/           # Assignment management
+│   │   ├── tasks/                 # Task operations
+│   │   └── preferences/           # User settings
+│   ├── 📁 auth/                   # Authentication UI
+│   ├── 📁 dashboard/              # Main app (protected route)
+│   ├── 📁 preferences/            # Settings page
+│   ├── layout.tsx                 # Root layout with providers
+│   ├── page.tsx                   # Landing page
+│   └── globals.css                # Global styles + Tailwind
 │
-├── backend/                      # FastAPI Backend
+├── 📁 backend/                    # FastAPI Backend
 │   ├── ai/
-│   │   ├── chat_handler.py      # Gemini chat integration
-│   │   └── functions.py         # AI function declarations
-│   ├── auth/                     # Auth utilities
-│   ├── database/
-│   │   └── connection.py        # MongoDB connection
-│   ├── models/                   # Pydantic models
-│   ├── routes/                   # API routes (planned, not impl)
+│   │   ├── chat_handler.py        # Gemini chat integration
+│   │   └── functions.py           # AI function declarations
+│   ├── auth/                      # Auth utilities
+│   ├── database/                  # MongoDB connection
+│   ├── models/                    # Pydantic models
 │   ├── services/
-│   │   └── function_executor.py # Executes AI function calls
-│   ├── main.py                   # FastAPI app + WebSocket
+│   │   └── function_executor.py   # Executes AI function calls
+│   ├── main.py                    # FastAPI app + WebSocket
 │   └── requirements.txt
 │
-├── components/                   # React Components
-│   ├── Calendar.tsx              # Drag-drop calendar
-│   ├── CalendarSection.tsx       # Calendar wrapper with events
-│   ├── GoogleCalendarButton.tsx  # OAuth connection button
-│   ├── TaskCard.tsx              # Task display card
-│   ├── ThemeToggle.tsx           # Dark/light mode switcher
-│   ├── chat/                     # Chat UI components
-│   │   ├── ChatContainer.tsx    # Main chat interface
-│   │   ├── ChatInput.tsx        # Message input field
-│   │   ├── ChatMessage.tsx      # Message bubble
-│   │   └── TypingIndicator.tsx  # Loading animation
-│   └── ui/                       # Reusable UI components
-│       ├── Modal.tsx
-│       └── ConfirmDialog.tsx
+├── 📁 components/                 # React Components
+│   ├── Calendar.tsx               # Drag-drop calendar
+│   ├── CalendarSection.tsx        # Calendar with event loading
+│   ├── GoogleCalendarButton.tsx   # OAuth connection
+│   ├── chat/                      # Chat interface components
+│   └── ui/                        # Reusable UI components
 │
-├── contexts/
-│   └── ThemeContext.tsx          # Global theme state
+├── 📁 lib/                        # Utilities
+│   ├── auth.ts                    # JWT + bcrypt helpers
+│   ├── google-calendar.ts         # Calendar API wrapper
+│   ├── mongodb.ts                 # Database connection
+│   └── utils.ts                   # General utilities
 │
-├── hooks/
-│   └── useWebSocket.ts           # WebSocket connection hook
+├── 📁 docs/                       # Documentation
+│   ├── API_REFERENCE.md           # Complete API docs
+│   ├── ARCHITECTURE.md            # System design
+│   ├── IMPLEMENTATION_STATUS.md   # Feature tracking
+│   └── TODO.md                    # Task list
 │
-├── lib/                          # Utilities
-│   ├── auth.ts                   # JWT + bcrypt helpers
-│   ├── google-calendar.ts        # Google Calendar API wrapper
-│   ├── mongodb.ts                # MongoDB connection + client
-│   └── utils.ts                  # General utilities
-│
-├── models/                       # TypeScript Models
-│   ├── User.ts                   # User data model
-│   └── UserPreferences.ts        # Preferences model
-│
-└── docs/                         # Documentation
-    ├── archive/                  # Old documentation (reference)
-    ├── ARCHITECTURE.md           # System architecture
-    ├── API_REFERENCE.md          # Complete API documentation
-    ├── IMPLEMENTATION_STATUS.md  # Feature status tracking
-    ├── DEVELOPMENT.md            # Development guide
-    └── TODO.md                   # Prioritized task list
+└── 📄 package.json                # Dependencies
 ```
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-**Essential Docs** (Start Here):
-- **README.md** (this file) - Overview and quick start
-- **IMPLEMENTATION_STATUS.md** - What's implemented, what's not
-- **TODO.md** - Prioritized task list
-
-**Technical Docs**:
-- **ARCHITECTURE.md** - System design, data flow, authentication
-- **API_REFERENCE.md** - Complete endpoint documentation
-- **DEVELOPMENT.md** - How to add features, development patterns
-
-**Archived Docs** (Reference):
-- `docs/archive/` - Original hackathon planning docs
+| Document | Description |
+|----------|-------------|
+| **[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)** | What's working, what's in progress |
+| **[API_REFERENCE.md](API_REFERENCE.md)** | Complete endpoint documentation |
+| **[ARCHITECTURE.md](ARCHITECTURE.md)** | System design and data flow |
+| **[DEVELOPMENT.md](DEVELOPMENT.md)** | Development guide and patterns |
+| **[TODO.md](TODO.md)** | Prioritized task list |
+| **[DEMO.md](DEMO.md)** | Step-by-step demo presentation guide |
 
 ---
 
-## 🎮 Demo Flow (For Judges/Testing)
+## Development
 
-1. **Landing Page**: Professional hero with animated background
-2. **Sign Up**: Create account with email/password
-3. **Connect Calendar**: OAuth flow to link Google Calendar
-4. **Set Preferences**: Choose study times and available days
-5. **Chat with AI**: "I have a research paper due next Friday"
-6. **AI Breaks Down Task**: Creates phases (research, draft, revise)
-7. **View Calendar**: See auto-scheduled study sessions
-8. **Drag to Reschedule**: Move sessions in calendar
-9. **Track Progress**: Mark tasks complete, see momentum build
-
----
-
-## 🔑 Key Features Explained
-
-### AI Chat with Function Calling
-- Conversational interface powered by Gemini
-- AI can call functions to create assignments, schedule tasks, query calendar
-- System instruction optimized for study planning domain
-- Real-time via WebSocket
-
-### Smart Scheduling
-- Analyzes Google Calendar for free time blocks
-- Respects user preferences (time of day, available days)
-- Considers assignment difficulty and phases
-- Color-codes by task type (research, drafting, revision)
-
-### Calendar Integration
-- Two-way sync with Google Calendar
-- Drag-and-drop rescheduling
-- Only SteadyStudy events are draggable (not Google events)
-- Event resizing supported
-
-### Theme System
-- Dark/light mode toggle with smooth transitions
-- Persistent preference (localStorage)
-- System preference detection
-
----
-
-## 💡 Future Production Considerations
-
-**Note**: These are intentionally simplified for local demo. Address post-hackathon if deploying publicly.
-
-### For Production Deployment
-- **WebSocket Authentication** (`backend/main.py:95-96`)
-  - Currently accepts user_id directly (fine for local demo)
-  - Add JWT verification before public deployment
-
-### Debug & Logging
-- **Console Logging** (`lib/google-calendar.ts`)
-  - DEBUG logs helpful during demo development
-  - Make conditional on environment for production
-
-### Feature Completion
-- **Backend Function Executor** (`backend/services/function_executor.py`)
-  - Core logic present, database operations in progress
-  - See `TODO.md` for completion roadmap
-
----
-
-## 🛠️ Development Commands
+### Available Commands
 
 ```bash
-# Frontend
-npm run dev          # Development server (port 3000)
-npm run build        # Production build
-npm start            # Production server
-npm run lint         # ESLint
+# Frontend Development
+npm run dev          # Start dev server (localhost:3000)
+npm run build        # Create production build
+npm start            # Run production server
+npm run lint         # Run ESLint
 
-# Backend
+# Backend Development
 cd backend
-python main.py       # Development server (port 8000)
-# (no build step for Python)
-
-# Database
-# MongoDB Atlas managed via web console
-# Indexes created automatically on first use
+python main.py       # Start FastAPI server (localhost:8000)
 ```
 
----
+### Environment Variables
 
-## 🔒 Security Notes
+Both frontend (`.env.local`) and backend (`backend/.env`) require configuration. See [Quick Start](#-quick-start) for complete setup instructions.
 
-**Current (Demo Mode)**:
-- JWT tokens stored in localStorage (standard practice)
-- Passwords hashed with bcrypt (10 rounds)
-- Google OAuth follows standard flow
-- CORS configured for localhost
-- WebSocket accepts user_id directly (local demo only)
+### Code Style
 
-**For Future Production**:
-- Add HTTPS enforcement
-- Implement token rotation
-- Add rate limiting middleware
-- Move JWT to HttpOnly cookies
-- Implement WebSocket JWT verification
+- **TypeScript** - Strict type checking enabled
+- **ESLint** - Next.js recommended config
+- **Prettier** - Automatic code formatting (configured via ESLint)
+- **Tailwind CSS** - Utility-first styling approach
 
 ---
 
-## 📝 License
+## Team & Credits
 
-Proprietary - AI ATL 2025 Hackathon Project
+**Built for:** AI ATL 2025 Hackathon
+By Ryan Brady, Elijah Borum, and Riley Pruitt (with the help of Claude Code)
+
+**Powered by:**
+- [Google Gemini](https://ai.google.dev/) - AI language model
+- [Google Calendar API](https://developers.google.com/calendar) - Calendar integration
+- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) - Database hosting
+- [Vercel](https://vercel.com/) - Deployment platform (Next.js)
+
+**Special Thanks:**
+- AI ATL organizers for the opportunity
+- Google for Gemini API access
 
 ---
 
-## 👥 Credits
+<div align="center">
+Built with ❤️ and Moe's Tofu Burritos for the AI ATL 2025 Hackathon
 
-Built for the AI ATL 2025 Hackathon.
+</div>
 
-**Tech Credits**:
-- AI: Google Gemini API
-- UI: React, Next.js, Tailwind CSS, Framer Motion
-- Calendar: React Big Calendar, Google Calendar API
-- Database: MongoDB Atlas
+

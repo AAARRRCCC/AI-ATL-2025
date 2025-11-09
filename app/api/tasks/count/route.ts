@@ -28,17 +28,22 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
     const tasksCollection = db.collection('subtasks');
 
-    // Count upcoming/pending study sessions
-    const now = new Date();
-    const count = await tasksCollection.countDocuments({
+    // Debug: Log query parameters
+    const query = {
       user_id: payload.userId,
-      status: { $in: ['pending', 'scheduled'] },
-      // Only count tasks that have a scheduled start time in the future
-      $or: [
-        { scheduled_start: { $gte: now } },
-        { scheduled_start: { $exists: false } } // Include tasks not yet scheduled
-      ]
-    });
+      status: { $in: ['pending', 'scheduled'] }
+    };
+    console.log('📊 Tasks count query:', JSON.stringify(query));
+
+    // Count all pending/scheduled subtasks
+    // Note: scheduled_start/end times are stored in Google Calendar, not in the database
+    // So we count all pending subtasks - they should have corresponding calendar events
+    const count = await tasksCollection.countDocuments(query);
+    console.log(`📊 Found ${count} tasks for user ${payload.userId}`);
+
+    // Debug: Get sample documents to verify data structure
+    const samples = await tasksCollection.find({ user_id: payload.userId }).limit(3).toArray();
+    console.log('📊 Sample tasks:', samples.map(t => ({ _id: t._id, title: t.title, status: t.status, user_id: t.user_id, assignment_id: t.assignment_id })));
 
     return NextResponse.json({ count }, { status: 200 });
   } catch (error) {
