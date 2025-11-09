@@ -71,8 +71,8 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
           start: new Date(event.start),
           end: new Date(event.end),
           description: event.description || "",
-          // Check if it's a Study Autopilot event
-          isStudyAutopilot: event.title?.includes("[Study Autopilot]"),
+          // Check if it's a SteadyStudy event
+          isStudyAutopilot: event.title?.includes("[SteadyStudy]"),
           googleEventId: event.id,
         }));
 

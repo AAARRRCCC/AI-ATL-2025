@@ -156,28 +156,6 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
 
         {/* Connection Status & Actions */}
         <div className="flex items-center gap-3">
-          {/* Debug MongoDB Button */}
-          <button
-            onClick={handleDebugMongoDB}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-            title="Debug MongoDB collections"
-          >
-            🔍 Debug
-          </button>
-
-          {/* Clear Chat Button */}
-          {messages.length > 0 && (
-            <button
-              onClick={handleClearChat}
-              disabled={isClearing}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-50"
-              title="Clear chat history"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Clear
-            </button>
-          )}
-
           {/* Connection Status - Hide during initial setup */}
           {!isInitializing && (
             <div className="flex items-center gap-2">

@@ -80,7 +80,7 @@ export default function AuthPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      toast.success(`Welcome ${isLogin ? 'back' : 'to Study Autopilot'}!`);
+      toast.success(`Welcome ${isLogin ? 'back' : 'to SteadyStudy'}!`);
 
       // Redirect to dashboard
       router.push("/dashboard");
@@ -132,7 +132,7 @@ export default function AuthPage() {
               <GraduationCap className="w-8 h-8 text-white" />
             </motion.div>
             <span className="text-2xl font-bold text-gray-900 dark:text-white">
-              Study Autopilot
+              SteadyStudy
             </span>
           </div>
           <AnimatePresence mode="wait">

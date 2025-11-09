@@ -265,7 +265,7 @@ export default function PreferencesPage() {
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white">
-                  Study Autopilot
+                  SteadyStudy
                 </span>
               </div>
             </div>

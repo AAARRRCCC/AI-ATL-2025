@@ -173,7 +173,7 @@ export function Calendar({
         };
       }
     } else {
-      // Google Calendar events (not Study Autopilot) - subtle grey
+      // Google Calendar events (not SteadyStudy) - subtle grey
       backgroundColor = "rgba(148, 163, 184, 0.88)"; // Slate gray
       borderColor = "#64748b";
       textColor = "#1e293b";

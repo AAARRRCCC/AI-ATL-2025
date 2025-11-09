@@ -42,7 +42,7 @@ export default function HeroSection() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 mb-12 max-w-3xl mx-auto"
         >
-          Study Autopilot uses AI to break down your assignments into achievable
+          SteadyStudy uses AI to break down your assignments into achievable
           work sessions and automatically schedules them based on your calendar.{" "}
           <span className="font-semibold text-gray-800 dark:text-gray-200">
             No more all-nighters. No more stress.

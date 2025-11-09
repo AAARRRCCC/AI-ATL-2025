@@ -5,7 +5,7 @@ import { getCalendarEvents, deleteCalendarEvent } from "@/lib/google-calendar";
 /**
  * DELETE /api/calendar/clear-study-events
  *
- * Deletes all Study Autopilot events from Google Calendar
+ * Deletes all SteadyStudy events from Google Calendar
  */
 export async function DELETE(request: NextRequest) {
   try {
@@ -28,15 +28,15 @@ export async function DELETE(request: NextRequest) {
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + 6); // 6 months ahead
 
-    console.log("Fetching calendar events to find Study Autopilot events...");
+    console.log("Fetching calendar events to find SteadyStudy events...");
     const events = await getCalendarEvents(payload.userId, startDate, endDate);
 
-    // Filter for Study Autopilot events
+    // Filter for SteadyStudy events
     const studyEvents = events.filter(event =>
-      event.summary?.includes("[Study Autopilot]")
+      event.summary?.includes("[SteadyStudy]")
     );
 
-    console.log(`Found ${studyEvents.length} Study Autopilot events to delete`);
+    console.log(`Found ${studyEvents.length} SteadyStudy events to delete`);
 
     // Delete each study event
     const deletedIds = [];
@@ -64,7 +64,7 @@ export async function DELETE(request: NextRequest) {
       deleted_count: deletedIds.length,
       total_found: studyEvents.length,
       errors: errors.length > 0 ? errors : undefined,
-      message: `Deleted ${deletedIds.length} of ${studyEvents.length} Study Autopilot events`
+      message: `Deleted ${deletedIds.length} of ${studyEvents.length} SteadyStudy events`
     });
 
   } catch (error: any) {

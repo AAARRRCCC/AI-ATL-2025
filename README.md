@@ -1,8 +1,8 @@
-# Study Autopilot
+# SteadyStudy
 
 > AI-Powered Study Planning System for Students | AI ATL 2025 Hackathon
 
-Study Autopilot is an intelligent study planning application that uses AI to break down assignments into manageable tasks, automatically schedules them based on Google Calendar availability, and provides a conversational interface for managing your academic workload. Built with Next.js 15, FastAPI, and Google Gemini AI.
+SteadyStudy is an intelligent study planning application that uses AI to break down assignments into manageable tasks, automatically schedules them based on Google Calendar availability, and provides a conversational interface for managing your academic workload. Built with Next.js 15, FastAPI, and Google Gemini AI.
 
 ## 🎪 Demo Mode
 
@@ -281,7 +281,7 @@ AI ATL 2025/
 ### Calendar Integration
 - Two-way sync with Google Calendar
 - Drag-and-drop rescheduling
-- Only Study Autopilot events are draggable (not Google events)
+- Only SteadyStudy events are draggable (not Google events)
 - Event resizing supported
 
 ### Theme System

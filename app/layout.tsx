@@ -5,7 +5,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: "Study Autopilot - AI-Powered Study Planning",
+  title: "SteadyStudy - AI-Powered Study Planning",
   description: "Break down assignments into achievable work sessions with smart scheduling. No more procrastination, no more all-nighters.",
 };
 
