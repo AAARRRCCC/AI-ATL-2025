@@ -12,7 +12,7 @@ export default function Footer() {
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">
-                Study Autopilot
+                SteadyStudy
               </span>
             </div>
             <p className="text-gray-500 dark:text-gray-400 max-w-md">
@@ -75,7 +75,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="pt-8 border-t border-gray-200 dark:border-gray-800 text-center">
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            © 2024 Study Autopilot. All rights reserved.
+            © 2024 SteadyStudy. All rights reserved.
           </p>
         </div>
       </div>

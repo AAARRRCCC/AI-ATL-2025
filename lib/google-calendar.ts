@@ -259,7 +259,7 @@ export async function createStudyEvent(
     console.log("DEBUG: Calendar client obtained successfully");
 
     const event = {
-      summary: `[Study Autopilot] ${title}`,
+      summary: `[SteadyStudy] ${title}`,
       description: `${description}\n\n${taskId ? `Task ID: ${taskId}` : ""}`,
       start: {
         dateTime: startTime.toISOString(),

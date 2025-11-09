@@ -1,5 +1,5 @@
 """
-Gemini AI Chat Handler for Study Autopilot
+Gemini AI Chat Handler for SteadyStudy
 
 Handles chat interactions with Google Gemini API using function calling
 to manipulate assignments, tasks, and calendar events.
@@ -21,7 +21,7 @@ class ChatHandler:
     """
 
     SYSTEM_INSTRUCTION = """
-You are Study Autopilot, an AI assistant that helps college students manage their
+You are SteadyStudy, an AI assistant that helps college students manage their
 assignments and study schedules. You have access to their Google Calendar and can
 directly create, schedule, and manage their study tasks.
 

@@ -1,5 +1,5 @@
 """
-Study Autopilot Backend API
+SteadyStudy Backend API
 
 FastAPI application with WebSocket support for AI chat and REST endpoints
 for assignment and calendar management.
@@ -20,7 +20,7 @@ load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Study Autopilot API",
+    title="SteadyStudy API",
     description="AI-powered study planning and scheduling API",
     version="1.0.0"
 )
@@ -58,7 +58,7 @@ async def root():
     """Health check endpoint"""
     return {
         "status": "ok",
-        "service": "Study Autopilot API",
+        "service": "SteadyStudy API",
         "version": "1.0.0",
         "timestamp": datetime.utcnow().isoformat()
     }

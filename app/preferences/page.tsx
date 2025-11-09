@@ -40,6 +40,8 @@ interface Preferences {
     subjectStrengths?: PrioritySubject[];
     productivityPattern?: 'morning' | 'midday' | 'evening';
     assignmentDeadlineBuffer?: number;
+    calendarViewStart?: string;
+    calendarViewEnd?: string;
   };
 }
 
@@ -89,6 +91,8 @@ export default function PreferencesPage() {
   const [prioritySubjects, setPrioritySubjects] = useState<PrioritySubject[]>([]);
   const [productivityPattern, setProductivityPattern] = useState<'morning' | 'midday' | 'evening'>('midday');
   const [assignmentDeadlineBuffer, setAssignmentDeadlineBuffer] = useState(2);
+  const [calendarViewStart, setCalendarViewStart] = useState('08:00');
+  const [calendarViewEnd, setCalendarViewEnd] = useState('23:59');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // New subject/time inputs
@@ -123,6 +127,8 @@ export default function PreferencesPage() {
         setPrioritySubjects(data.studySettings?.subjectStrengths || []);
         setProductivityPattern(data.studySettings?.productivityPattern || 'midday');
         setAssignmentDeadlineBuffer(data.studySettings?.assignmentDeadlineBuffer || 2);
+        setCalendarViewStart(data.studySettings?.calendarViewStart || '08:00');
+        setCalendarViewEnd(data.studySettings?.calendarViewEnd || '23:59');
         setHasUnsavedChanges(false);
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -160,6 +166,8 @@ export default function PreferencesPage() {
             subjectStrengths: prioritySubjects,
             productivityPattern,
             assignmentDeadlineBuffer,
+            calendarViewStart,
+            calendarViewEnd,
           },
         }),
       });
@@ -265,7 +273,7 @@ export default function PreferencesPage() {
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white">
-                  Study Autopilot
+                  SteadyStudy
                 </span>
               </div>
             </div>
@@ -536,6 +544,48 @@ export default function PreferencesPage() {
                 </div>
               </div>
             </div>
+          </section>
+
+          {/* Calendar View Hours */}
+          <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Calendar View Hours
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Set visible hours in week/day calendar view
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 items-center bg-gray-50 dark:bg-gray-700/30 p-3 rounded-lg">
+              <span className="text-gray-700 dark:text-gray-300 font-medium">Show from</span>
+              <input
+                type="time"
+                value={calendarViewStart}
+                onChange={(e) => {
+                  setCalendarViewStart(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <span className="text-gray-500 dark:text-gray-400 font-medium">to</span>
+              <input
+                type="time"
+                value={calendarViewEnd}
+                onChange={(e) => {
+                  setCalendarViewEnd(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Default: 8:00 AM - 11:59 PM
+            </p>
           </section>
 
           {/* Priority Subjects */}

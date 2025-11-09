@@ -24,6 +24,8 @@ export interface UserPreferences {
     }[];
     productivityPattern: 'morning' | 'midday' | 'evening'; // preferred work time of day
     assignmentDeadlineBuffer: number; // days before deadline to prefer scheduling work
+    calendarViewStart?: string; // HH:MM format - start hour for calendar view
+    calendarViewEnd?: string; // HH:MM format - end hour for calendar view
   };
   calendarIntegration: {
     enabled: boolean;
@@ -58,6 +60,8 @@ export interface UserPreferencesResponse {
     }[];
     productivityPattern: 'morning' | 'midday' | 'evening';
     assignmentDeadlineBuffer: number;
+    calendarViewStart?: string;
+    calendarViewEnd?: string;
   };
   calendarIntegration: {
     enabled: boolean;
@@ -90,6 +94,8 @@ export interface UpdatePreferencesInput {
     }[];
     productivityPattern?: 'morning' | 'midday' | 'evening';
     assignmentDeadlineBuffer?: number;
+    calendarViewStart?: string;
+    calendarViewEnd?: string;
   };
   calendarIntegration?: {
     enabled?: boolean;
@@ -118,6 +124,8 @@ export const DEFAULT_USER_PREFERENCES: Omit<
     subjectStrengths: [],
     productivityPattern: 'midday',
     assignmentDeadlineBuffer: 2, // 2 days before deadline
+    calendarViewStart: '08:00', // 8 AM default
+    calendarViewEnd: '23:59', // 11:59 PM default
   },
   calendarIntegration: {
     enabled: false,

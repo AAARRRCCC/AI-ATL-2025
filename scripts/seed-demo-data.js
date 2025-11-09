@@ -181,7 +181,7 @@ const SAMPLE_CHAT_HISTORY = (userId) => [
   {
     userId,
     role: 'assistant',
-    content: 'Hi! I\'m Study Autopilot, your AI study planning assistant. I can help you break down assignments, find time in your calendar, and create a realistic study schedule. What assignments do you have coming up?',
+    content: 'Hi! I\'m SteadyStudy, your AI study planning assistant. I can help you break down assignments, find time in your calendar, and create a realistic study schedule. What assignments do you have coming up?',
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000 + 5000)
   },
   {

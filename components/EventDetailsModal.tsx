@@ -33,7 +33,7 @@ export function EventDetailsModal({ event, onClose, onDelete }: EventDetailsModa
               {event.isStudyAutopilot && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium text-white">
                   <Tag className="w-3 h-3" />
-                  Study Autopilot
+                  SteadyStudy
                 </span>
               )}
             </div>
@@ -100,7 +100,7 @@ export function EventDetailsModal({ event, onClose, onDelete }: EventDetailsModa
             </div>
           )}
 
-          {/* Phase Info (for Study Autopilot events) */}
+          {/* Phase Info (for SteadyStudy events) */}
           {event.phase && (
             <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
