@@ -19,6 +19,7 @@ export function ChatContainer({ userId, onDataChange, onCalendarRefresh }: ChatC
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const lastProcessedMessageIndexRef = useRef<number>(-1);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -28,19 +29,30 @@ export function ChatContainer({ userId, onDataChange, onCalendarRefresh }: ChatC
   }, [messages, isTyping]);
 
   // Trigger data refresh when new messages with function calls are received
+  // Only process each message once to prevent duplicate refreshes
   useEffect(() => {
     if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
+      const lastMessageIndex = messages.length - 1;
+
+      // Skip if we've already processed this message
+      if (lastMessageIndex <= lastProcessedMessageIndexRef.current) {
+        return;
+      }
+
+      const lastMessage = messages[lastMessageIndex];
       if (lastMessage.role === 'model' && lastMessage.function_calls && lastMessage.function_calls.length > 0) {
         // Check if any function calls were for creating/updating assignments or tasks
         const hasDataChanges = lastMessage.function_calls.some(
           fc => ['create_assignment', 'create_subtasks', 'schedule_tasks', 'update_task_status', 'reschedule_task'].includes(fc.name)
         );
         if (hasDataChanges) {
+          console.log('📊 AI made changes - refreshing widgets and calendar');
           // Refresh widget counts
           onDataChange?.();
           // Refresh calendar display
           onCalendarRefresh?.();
+          // Mark this message as processed
+          lastProcessedMessageIndexRef.current = lastMessageIndex;
         }
       }
     }

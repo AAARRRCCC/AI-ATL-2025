@@ -81,7 +81,7 @@ AVAILABLE_FUNCTIONS = [
     ),
     glm.FunctionDeclaration(
         name="schedule_tasks",
-        description="Schedule subtasks by finding free time in the user's calendar and creating calendar events. Automatically respects user preferences.",
+        description="Schedule subtasks by finding free time in the user's calendar and creating calendar events. Automatically respects user preferences. If user specifies exact times (e.g., '3 to 4', '2pm to 3pm'), use preferred_start_time and preferred_end_time parameters.",
         parameters=glm.Schema(
             type=glm.Type.OBJECT,
             properties={
@@ -96,6 +96,14 @@ AVAILABLE_FUNCTIONS = [
                 "end_date": glm.Schema(
                     type=glm.Type.STRING,
                     description="End date for scheduling (YYYY-MM-DD), defaults to due date"
+                ),
+                "preferred_start_time": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="When user specifies exact start time (e.g., '3pm', '15:00'), provide in HH:MM 24-hour format. Only use this when user explicitly states a time."
+                ),
+                "preferred_end_time": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="When user specifies exact end time (e.g., '4pm', '16:00'), provide in HH:MM 24-hour format. Only use this when user explicitly states a time."
                 )
             },
             required=["assignment_id"]
