@@ -63,7 +63,7 @@ export async function DELETE(request: NextRequest) {
     // If we found a task ID, delete from database
     if (taskId) {
       const db = await getDatabase();
-      const tasksCollection = db.collection("tasks");
+      const tasksCollection = db.collection("subtasks");
       const assignmentsCollection = db.collection("assignments");
 
       // Get task details before deleting

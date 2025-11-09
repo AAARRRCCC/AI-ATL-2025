@@ -28,16 +28,12 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
     const tasksCollection = db.collection('subtasks');
 
-    // Count upcoming/pending study sessions
-    const now = new Date();
+    // Count all pending/scheduled subtasks
+    // Note: scheduled_start/end times are stored in Google Calendar, not in the database
+    // So we count all pending subtasks - they should have corresponding calendar events
     const count = await tasksCollection.countDocuments({
       user_id: payload.userId,
-      status: { $in: ['pending', 'scheduled'] },
-      // Only count tasks that have a scheduled start time in the future
-      $or: [
-        { scheduled_start: { $gte: now } },
-        { scheduled_start: { $exists: false } } // Include tasks not yet scheduled
-      ]
+      status: { $in: ['pending', 'scheduled'] }
     });
 
     return NextResponse.json({ count }, { status: 200 });
