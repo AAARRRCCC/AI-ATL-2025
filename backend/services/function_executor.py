@@ -336,26 +336,33 @@ class FunctionExecutor:
 
             # ═══ Step 2: Topological Sort (respect dependencies) ═══
             def topological_sort(graph: Dict[str, List[str]]) -> List[str]:
-                """Sort tasks so prerequisites come before dependents."""
-                in_degree = {task: 0 for task in graph}
+                """
+                Sort tasks so prerequisites come before dependents.
+                graph[task] = list of task titles that must be completed before 'task'
+                """
+                # in_degree[task] = number of prerequisites task has
+                in_degree = {}
                 for task in graph:
-                    for dep in graph[task]:
-                        if dep in in_degree:
-                            in_degree[dep] += 1
+                    # Count how many valid prerequisites this task has
+                    in_degree[task] = len([dep for dep in graph[task] if dep in graph])
 
+                # Start with tasks that have no prerequisites (in_degree == 0)
                 queue = [task for task, degree in in_degree.items() if degree == 0]
                 sorted_tasks = []
 
                 while queue:
                     # Sort by order_index to maintain AI's intended sequence
-                    queue.sort(key=lambda t: task_by_title[t].get("order_index", 999))
-                    task = queue.pop(0)
-                    sorted_tasks.append(task)
+                    queue.sort(key=lambda t: task_by_title.get(t, {}).get("order_index", 999))
+                    current_task = queue.pop(0)
+                    sorted_tasks.append(current_task)
 
+                    # For each other task, check if it was waiting for current_task
                     for other_task, deps in graph.items():
-                        if task in deps:
+                        if current_task in deps:
+                            # other_task was depending on current_task, now completed
                             in_degree[other_task] -= 1
                             if in_degree[other_task] == 0:
+                                # All prerequisites done, can schedule now
                                 queue.append(other_task)
 
                 return sorted_tasks
