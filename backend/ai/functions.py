@@ -41,7 +41,7 @@ AVAILABLE_FUNCTIONS = [
     ),
     glm.FunctionDeclaration(
         name="create_subtasks",
-        description="Create subtasks for an assignment with custom titles, descriptions, phases, and time estimates. Call this after analyzing what steps are needed to complete the assignment.",
+        description="Create subtasks for an assignment with custom titles, descriptions, phases, time estimates, dependencies, and intensity levels. Call ONCE per assignment after analyzing what steps are needed. IMPORTANT: Create 2-4 substantial work blocks, not 6-8 micro-tasks. Duration estimates will be clamped to user's configured max task duration.",
         parameters=glm.Schema(
             type=glm.Type.OBJECT,
             properties={
@@ -51,13 +51,13 @@ AVAILABLE_FUNCTIONS = [
                 ),
                 "subtasks": glm.Schema(
                     type=glm.Type.ARRAY,
-                    description="Array of subtasks to create",
+                    description="Array of 2-4 substantial subtasks (not 6-8 micro-tasks). Combine related work into cohesive sessions.",
                     items=glm.Schema(
                         type=glm.Type.OBJECT,
                         properties={
                             "title": glm.Schema(
                                 type=glm.Type.STRING,
-                                description="Subtask title (e.g., 'Research sources', 'Write introduction')"
+                                description="Subtask title (e.g., 'Research & Outline', 'Write Draft', 'Revise')"
                             ),
                             "description": glm.Schema(
                                 type=glm.Type.STRING,
@@ -65,11 +65,20 @@ AVAILABLE_FUNCTIONS = [
                             ),
                             "phase": glm.Schema(
                                 type=glm.Type.STRING,
-                                description="Work phase (e.g., 'Research', 'Drafting', 'Review', 'Practice', 'Study')"
+                                description="Work phase: 'Research', 'Planning', 'Drafting', 'Execution', 'Practice', 'Review', 'Study', or 'Revision'"
                             ),
                             "estimated_duration": glm.Schema(
                                 type=glm.Type.INTEGER,
-                                description="Estimated time in minutes to complete this subtask"
+                                description="Estimated time in minutes. Be realistic based on actual work required (not templates). Will be clamped to user's max duration setting."
+                            ),
+                            "depends_on": glm.Schema(
+                                type=glm.Type.ARRAY,
+                                description="Array of task titles that must be completed before this one (e.g., ['Research sources'] if writing depends on research). Leave empty for tasks with no prerequisites.",
+                                items=glm.Schema(type=glm.Type.STRING)
+                            ),
+                            "intensity": glm.Schema(
+                                type=glm.Type.STRING,
+                                description="Cognitive intensity: 'light' (review, editing), 'medium' (standard work), or 'intense' (deep learning, complex problems). Used to avoid back-to-back intense sessions."
                             )
                         },
                         required=["title", "description", "phase", "estimated_duration"]
@@ -81,7 +90,7 @@ AVAILABLE_FUNCTIONS = [
     ),
     glm.FunctionDeclaration(
         name="schedule_tasks",
-        description="Schedule subtasks by finding free time in the user's calendar and creating calendar events. Automatically respects user preferences.",
+        description="Intelligently schedule subtasks by finding optimal free time slots. AUTOMATICALLY: respects task dependencies (schedules prerequisites first), prioritizes urgent deadlines, adds 15-min buffer breaks between sessions, limits daily study hours, avoids back-to-back intense work, honors user's available days/times, and ensures ZERO overlap with existing calendar events.",
         parameters=glm.Schema(
             type=glm.Type.OBJECT,
             properties={
@@ -95,7 +104,7 @@ AVAILABLE_FUNCTIONS = [
                 ),
                 "end_date": glm.Schema(
                     type=glm.Type.STRING,
-                    description="End date for scheduling (YYYY-MM-DD), defaults to due date"
+                    description="End date for scheduling (YYYY-MM-DD), defaults to assignment due date minus buffer"
                 )
             },
             required=["assignment_id"]

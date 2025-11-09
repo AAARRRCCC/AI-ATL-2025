@@ -6,7 +6,7 @@ tasks, and calendar events.
 """
 
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dateutil import parser
 import httpx
 import os
@@ -94,18 +94,43 @@ class FunctionExecutor:
             if not assignment:
                 return {"success": False, "error": "Assignment not found"}
 
+            # Load user preferences to respect max task duration
+            preferences = await self.db.get_user_preferences(self.user_id)
+            study_settings = preferences.get("studySettings", {}) if preferences else {}
+
+            # Get user's max task duration preference (default 120 minutes for flexibility)
+            max_task_duration = study_settings.get("maxTaskDuration", 120)
+            min_task_duration = 15  # Minimum 15 minutes for any task
+
             # Create subtasks in database with order_index
             task_ids = []
             total_minutes = 0
+            clamping_applied = []
 
             for index, subtask in enumerate(subtasks):
                 # Add order_index to maintain sequence
+                raw_duration = subtask.get("estimated_duration", 60)
+
+                # Respect user's configured max task duration
+                clamped_duration = max(min_task_duration, min(raw_duration, max_task_duration))
+
+                # Track if clamping was applied for reporting
+                if raw_duration != clamped_duration:
+                    clamping_applied.append({
+                        "task": subtask["title"],
+                        "requested": raw_duration,
+                        "clamped_to": clamped_duration
+                    })
+
+                # Add dependency and intensity fields if provided
                 subtask_data = {
                     "title": subtask["title"],
                     "description": subtask.get("description", ""),
                     "phase": subtask.get("phase", "Work"),
-                    "estimated_duration": subtask.get("estimated_duration", 60),
-                    "order_index": index
+                    "estimated_duration": clamped_duration,
+                    "order_index": index,
+                    "depends_on": subtask.get("depends_on", []),  # Task dependencies
+                    "intensity": subtask.get("intensity", "medium")  # light, medium, intense
                 }
 
                 total_minutes += subtask_data["estimated_duration"]
@@ -126,13 +151,20 @@ class FunctionExecutor:
                 {"total_estimated_hours": total_hours}
             )
 
-            return {
+            result = {
                 "success": True,
                 "subtasks_created": len(subtasks),
                 "total_hours": total_hours,
                 "task_ids": task_ids,
                 "message": f"Created {len(subtasks)} subtasks totaling {total_hours:.1f} hours"
             }
+
+            # Include clamping warning if durations were adjusted
+            if clamping_applied:
+                result["clamping_applied"] = clamping_applied
+                result["message"] += f" (Note: {len(clamping_applied)} task duration(s) adjusted to respect user's max task duration of {max_task_duration} minutes)"
+
+            return result
 
         except Exception as e:
             return {
@@ -198,87 +230,256 @@ class FunctionExecutor:
                 pattern_range = time_ranges.get(productivity_pattern, time_ranges["midday"])
                 available_time_blocks = [pattern_range]
 
+            def normalize_datetime(value: Optional[Any]) -> Optional[datetime]:
+                if value is None:
+                    return None
+                dt = value
+                if isinstance(value, str):
+                    dt = parser.parse(value)
+                if isinstance(dt, datetime):
+                    if dt.tzinfo:
+                        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+                    return dt
+                return None
+
             # Calculate start date (today or provided)
-            start = datetime.now() if not start_date else parser.parse(start_date)
+            start = datetime.now() if not start_date else normalize_datetime(start_date)
+            if start is None:
+                start = datetime.now()
 
             # Calculate end date (assignment due date minus buffer)
+            due_date_value = None
             if "due_date" in assignment:
-                due_date = assignment["due_date"]
-                if isinstance(due_date, str):
-                    due_date = parser.parse(due_date)
+                due_date_value = normalize_datetime(assignment["due_date"])
                 # Apply deadline buffer
-                target_completion = due_date - timedelta(days=deadline_buffer)
+                target_completion = due_date_value - timedelta(days=deadline_buffer)
             else:
                 target_completion = start + timedelta(days=14)  # Default 2 weeks
 
-            # Schedule tasks
-            scheduled_tasks = []
-            current_date = start.replace(hour=0, minute=0, second=0, microsecond=0)
+            if target_completion < start:
+                target_completion = start
+
+            # Build busy timeline (existing events + already scheduled tasks)
+            busy_intervals: List[tuple[datetime, datetime]] = []
+
+            def add_busy_interval(start_dt_raw: Optional[Any], end_dt_raw: Optional[Any]):
+                start_dt = normalize_datetime(start_dt_raw)
+                end_dt = normalize_datetime(end_dt_raw)
+                if not start_dt or not end_dt:
+                    return
+                if end_dt <= start_dt:
+                    return
+                busy_intervals.append((start_dt, end_dt))
+
+            # Existing calendar events
+            calendar_window_end = (due_date_value or target_completion) + timedelta(days=1)
+            if self.auth_token:
+                events_response = await self.get_calendar_events(
+                    user_id,
+                    start.isoformat(),
+                    calendar_window_end.isoformat()
+                )
+                if events_response.get("success"):
+                    for event in events_response.get("events", []):
+                        add_busy_interval(
+                            event.get("start") or event.get("start_time"),
+                            event.get("end") or event.get("end_time")
+                        )
+
+            # Existing scheduled tasks
+            for task in tasks:
+                add_busy_interval(
+                    task.get("scheduled_start"),
+                    task.get("scheduled_end")
+                )
+
+            # ═══════════════════════════════════════════════════════════════
+            # SMART SCHEDULING ALGORITHM
+            # ═══════════════════════════════════════════════════════════════
+
+            BUFFER_MINUTES = 15  # Break time between study sessions
+            max_daily_hours = study_settings.get("maxDailyStudyHours", 6)
+            slot_increment = max(15, min(default_work_duration, 45))
+
+            def is_slot_free(start_dt: datetime, end_dt: datetime, with_buffer: bool = True) -> bool:
+                """Check if time slot is free, optionally with buffer time."""
+                buffer = timedelta(minutes=BUFFER_MINUTES if with_buffer else 0)
+                for busy_start, busy_end in busy_intervals:
+                    # Add buffer before and after busy slots
+                    if start_dt < (busy_end + buffer) and (end_dt + buffer) > busy_start:
+                        return False
+                return True
+
+            def get_daily_study_minutes(date: datetime) -> int:
+                """Calculate total study minutes already scheduled for a given date."""
+                day_start = date.replace(hour=0, minute=0, second=0, microsecond=0)
+                day_end = day_start + timedelta(days=1)
+                total_minutes = 0
+                for busy_start, busy_end in busy_intervals:
+                    # Only count intervals that look like study sessions (not all-day events)
+                    if busy_start >= day_start and busy_end <= day_end:
+                        duration = (busy_end - busy_start).total_seconds() / 60
+                        if duration <= 180:  # Only count sessions <= 3 hours as study
+                            total_minutes += duration
+                return int(total_minutes)
+
+            # ═══ Step 1: Build Dependency Graph ═══
+            task_by_title = {task["title"]: task for task in tasks}
+            dependency_graph = {}  # task_title -> [dependent_task_titles]
 
             for task in tasks:
+                task_title = task["title"]
+                depends_on = task.get("depends_on", [])
+                if not depends_on:
+                    depends_on = []
+                dependency_graph[task_title] = depends_on
+
+            # ═══ Step 2: Topological Sort (respect dependencies) ═══
+            def topological_sort(graph: Dict[str, List[str]]) -> List[str]:
+                """Sort tasks so prerequisites come before dependents."""
+                in_degree = {task: 0 for task in graph}
+                for task in graph:
+                    for dep in graph[task]:
+                        if dep in in_degree:
+                            in_degree[dep] += 1
+
+                queue = [task for task, degree in in_degree.items() if degree == 0]
+                sorted_tasks = []
+
+                while queue:
+                    # Sort by order_index to maintain AI's intended sequence
+                    queue.sort(key=lambda t: task_by_title[t].get("order_index", 999))
+                    task = queue.pop(0)
+                    sorted_tasks.append(task)
+
+                    for other_task, deps in graph.items():
+                        if task in deps:
+                            in_degree[other_task] -= 1
+                            if in_degree[other_task] == 0:
+                                queue.append(other_task)
+
+                return sorted_tasks
+
+            sorted_task_titles = topological_sort(dependency_graph)
+            sorted_tasks = [task_by_title[title] for title in sorted_task_titles if title in task_by_title]
+
+            # ═══ Step 3: Prioritize by Deadline Urgency ═══
+            # Calculate days until due date for each task
+            for task in sorted_tasks:
+                task["_urgency_score"] = 0
+                if due_date_value:
+                    days_until_due = (due_date_value - start).days
+                    # More urgent = higher score
+                    task["_urgency_score"] = 100 / max(1, days_until_due)
+
+            # Sort by: dependencies first, then urgency, then order
+            # (topological sort maintains dependencies, so we're golden)
+
+            # ═══ Step 4: Smart Scheduling Loop ═══
+            scheduled_tasks = []
+            last_scheduled_intensity = None
+            last_scheduled_end = None
+
+            for task in sorted_tasks:
                 duration_minutes = task["estimated_duration"]
+                intensity = task.get("intensity", "medium")
 
                 # Apply time multiplier if subject needs more time
                 if needs_more_time:
-                    duration_minutes = int(duration_minutes * 1.25)  # 25% more time
+                    duration_minutes = int(duration_minutes * 1.25)
 
-                # Find next available slot
+                # Find best available slot
                 scheduled = False
-                attempts = 0
-                max_attempts = 30  # Prevent infinite loop
+                search_start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
-                while not scheduled and attempts < max_attempts and current_date <= target_completion:
-                    # Check if current day is available
-                    day_of_week = current_date.weekday()  # Monday=0, Sunday=6
+                # Search through days until target completion
+                for day_offset in range((target_completion - search_start).days + 1):
+                    if scheduled:
+                        break
 
-                    # Convert to 0=Sunday format if needed
+                    current_date = search_start + timedelta(days=day_offset)
+                    day_of_week = current_date.weekday()
                     day_num = (day_of_week + 1) % 7
 
-                    if day_num in days_available:
-                        # Try to schedule in the first available time block
-                        for time_block in available_time_blocks:
-                            start_time_str = time_block["start"]
-                            hour, minute = map(int, start_time_str.split(":"))
+                    # Skip if day not available
+                    if day_num not in days_available:
+                        continue
 
-                            task_start = current_date.replace(hour=hour, minute=minute)
+                    # Check daily study limit
+                    daily_minutes = get_daily_study_minutes(current_date)
+                    if daily_minutes + duration_minutes > (max_daily_hours * 60):
+                        continue  # Skip day if would exceed daily limit
+
+                    # Try to schedule in available time blocks
+                    for time_block in available_time_blocks:
+                        if scheduled:
+                            break
+
+                        start_time_str = time_block["start"]
+                        hour, minute = map(int, start_time_str.split(":"))
+                        block_start = current_date.replace(hour=hour, minute=minute)
+
+                        block_end_str = time_block["end"]
+                        block_hour, block_minute = map(int, block_end_str.split(":"))
+                        block_end = current_date.replace(hour=block_hour, minute=block_minute)
+
+                        # Prioritize productivity hours for intense work
+                        # (already using preferred times, so this is handled)
+
+                        candidate_start = block_start
+                        while candidate_start + timedelta(minutes=duration_minutes) <= block_end:
+                            task_start = candidate_start
                             task_end = task_start + timedelta(minutes=duration_minutes)
 
-                            # Make sure we don't exceed the time block end
-                            block_end_str = time_block["end"]
-                            block_hour, block_minute = map(int, block_end_str.split(":"))
-                            block_end = current_date.replace(hour=block_hour, minute=block_minute)
+                            # Check if slot is free (with buffer)
+                            if is_slot_free(task_start, task_end, with_buffer=True):
+                                # Avoid back-to-back intense sessions
+                                if intensity == "intense" and last_scheduled_intensity == "intense":
+                                    if last_scheduled_end and (task_start - last_scheduled_end).total_seconds() < 3600:
+                                        # Less than 1 hour break between intense sessions - skip
+                                        candidate_start += timedelta(minutes=slot_increment)
+                                        continue
 
-                            if task_end <= block_end:
+                                # Schedule the task!
                                 scheduled_tasks.append({
                                     "task_id": str(task["_id"]),
                                     "title": task["title"],
                                     "scheduled_start": task_start.isoformat(),
                                     "scheduled_end": task_end.isoformat(),
                                     "duration_minutes": duration_minutes,
-                                    "description": task.get("description", "")
+                                    "description": task.get("description", ""),
+                                    "intensity": intensity
                                 })
+
+                                # Add to busy intervals with buffer
+                                buffer_end = task_end + timedelta(minutes=BUFFER_MINUTES)
+                                add_busy_interval(task_start, buffer_end)
+
+                                last_scheduled_intensity = intensity
+                                last_scheduled_end = task_end
                                 scheduled = True
-                                # Move to next available time or day
-                                current_date = task_end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
                                 break
 
-                    if not scheduled:
-                        current_date += timedelta(days=1)
-                        attempts += 1
+                            candidate_start += timedelta(minutes=slot_increment)
 
+                # Fallback if couldn't schedule
                 if not scheduled:
-                    # Fallback: schedule anyway with warning
-                    task_start = current_date.replace(hour=10, minute=0)
+                    # Try to find ANY available slot without buffer constraints
+                    fallback_date = start.replace(hour=10, minute=0, second=0, microsecond=0)
+                    task_start = fallback_date
                     task_end = task_start + timedelta(minutes=duration_minutes)
+
                     scheduled_tasks.append({
                         "task_id": str(task["_id"]),
                         "title": task["title"],
                         "scheduled_start": task_start.isoformat(),
                         "scheduled_end": task_end.isoformat(),
                         "duration_minutes": duration_minutes,
-                        "description": task.get("description", "")
+                        "description": task.get("description", ""),
+                        "intensity": intensity,
+                        "warning": "Could not find ideal slot - may conflict with existing events"
                     })
-                    current_date += timedelta(days=1)
+                    add_busy_interval(task_start, task_end)
 
             # Call Next.js API to create Google Calendar events
             calendar_result = None

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, KeyboardEvent, useRef, useEffect, ChangeEvent } from 'react';
-import { Loader2, Send, Upload } from 'lucide-react';
+import { Loader2, Send, Upload, X } from 'lucide-react';
+import { ChatAttachment } from '@/hooks/useWebSocket';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -9,6 +10,8 @@ interface ChatInputProps {
   disabled?: boolean;
   placeholder?: string;
   isUploading?: boolean;
+  pendingAttachments?: ChatAttachment[];
+  onRemoveAttachment?: (index: number) => void;
 }
 
 export function ChatInput({
@@ -17,6 +20,8 @@ export function ChatInput({
   disabled = false,
   placeholder = 'Type a message...',
   isUploading = false,
+  pendingAttachments = [],
+  onRemoveAttachment,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -29,8 +34,10 @@ export function ChatInput({
     }
   }, [disabled]);
 
+  const canSendMessage = message.trim().length > 0 || pendingAttachments.length > 0;
+
   const handleSend = () => {
-    if (message.trim() && !disabled) {
+    if (!disabled && canSendMessage) {
       onSend(message.trim());
       setMessage('');
 
@@ -74,6 +81,33 @@ export function ChatInput({
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      {pendingAttachments.length > 0 && (
+        <div className="mb-3 space-y-2">
+          {pendingAttachments.map((attachment, index) => (
+            <div
+              key={`${attachment.filename}-${index}`}
+              className="flex items-center justify-between rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/40 px-3 py-2 text-xs text-gray-700 dark:text-gray-300"
+            >
+              <div className="flex flex-col">
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{attachment.filename}</span>
+                <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {attachment.pages ? `${attachment.pages} pages` : 'PDF'}
+                  {attachment.size_kb ? ` · ${attachment.size_kb} KB` : ''}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemoveAttachment?.(index)}
+                className="ml-3 rounded-full p-1 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                title="Remove attachment"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-2">
           <button
             type="button"
@@ -118,7 +152,7 @@ export function ChatInput({
 
         <button
           onClick={handleSend}
-          disabled={disabled || !message.trim()}
+          disabled={disabled || !canSendMessage}
           className="flex-shrink-0 self-stretch px-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
           title="Send message (Enter)"
         >
@@ -128,7 +162,7 @@ export function ChatInput({
 
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
         Press <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Enter</kbd> to send,{' '}
-        <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Shift+Enter</kbd> for new line · Upload PDFs with the arrow icon
+        <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Shift+Enter</kbd> for new line · Upload PDFs with the arrow icon and send when ready
       </p>
     </div>
   );

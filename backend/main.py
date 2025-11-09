@@ -121,13 +121,29 @@ async def websocket_chat(websocket: WebSocket):
         while True:
             # Receive message
             data = await websocket.receive_json()
-            user_message = data.get("message")
+            user_message = data.get("message") or ""
+            attachments = data.get("attachments") or []
 
-            if not user_message:
+            if not user_message and not attachments:
                 continue
 
-            # Save user message to database
-            await db.save_message(user_id, "user", user_message)
+            # Save user message to database with attachments if provided
+            await db.save_message(user_id, "user", user_message, attachments=attachments or None)
+
+            augmented_message = user_message
+            if attachments:
+                attachment_descriptions = []
+                for attachment in attachments:
+                    filename = attachment.get("filename", "attachment")
+                    attachment_text = attachment.get("extracted_text") or attachment.get("preview")
+                    if attachment_text:
+                        attachment_descriptions.append(
+                            f"[Attachment: {filename}]\n{attachment_text}"
+                        )
+                if attachment_descriptions:
+                    if augmented_message:
+                        augmented_message += "\n\n"
+                    augmented_message += "\n\n".join(attachment_descriptions)
 
             # Send typing indicator
             await websocket.send_json({
@@ -139,7 +155,7 @@ async def websocket_chat(websocket: WebSocket):
             try:
                 response = await asyncio.wait_for(
                     chat_handler.process_message(
-                        user_message,
+                        augmented_message,
                         user_id,
                         history,
                         function_executor
@@ -170,7 +186,7 @@ async def websocket_chat(websocket: WebSocket):
             })
 
             # Update history
-            history.append({"role": "user", "content": user_message})
+            history.append({"role": "user", "content": augmented_message})
             history.append({"role": "model", "content": response["message"]})
 
     except WebSocketDisconnect:
@@ -193,7 +209,7 @@ async def upload_assignment_pdf(
     token: str = Form(None)
 ):
     """
-    Accept assignment PDFs, extract text, and run them through the chat handler.
+    Accept assignment PDFs, extract text, and store them as chat attachments.
     """
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
@@ -232,63 +248,23 @@ async def upload_assignment_pdf(
     pages = len(reader.pages)
     size_kb = round(len(file_bytes) / 1024, 1)
 
-    # Build the user message that will be sent to Gemini
-    user_message = (
-        f"I uploaded an assignment PDF titled '{file.filename}'. "
-        "Please read the instructions below, identify all requirements, "
-        "and break the assignment into tasks with estimates. "
-        "Create a suggested plan aligned with my study preferences.\n\n"
-        f"--- Assignment Instructions ---\n{truncated_text}\n--- End of Instructions ---"
-    )
-
     preview_limit = int(os.getenv("PDF_PREVIEW_CHAR_LIMIT", 350))
     preview_text = truncated_text[:preview_limit].strip()
     if len(truncated_text) > preview_limit:
         preview_text += "…"
 
-    attachments = [{
+    attachment = {
         "type": "pdf",
         "filename": file.filename,
         "pages": pages,
         "size_kb": size_kb,
-        "preview": preview_text
-    }]
-
-    history = await db.get_chat_history(user_id, limit=20)
-    function_executor = FunctionExecutor(db, user_id, token)
-
-    timestamp = datetime.utcnow().isoformat()
-    await db.save_message(user_id, "user", user_message, attachments=attachments)
-
-    response = await chat_handler.process_message(
-        user_message,
-        user_id,
-        history,
-        function_executor
-    )
-
-    assistant_timestamp = datetime.utcnow().isoformat()
-    await db.save_message(
-        user_id,
-        "model",
-        response["message"],
-        function_calls=response["function_calls"]
-    )
+        "preview": preview_text,
+        "extracted_text": truncated_text
+    }
 
     return {
         "success": True,
-        "user_message": {
-            "role": "user",
-            "content": user_message,
-            "timestamp": timestamp,
-            "attachments": attachments
-        },
-        "assistant_message": {
-            "role": "model",
-            "content": response["message"],
-            "timestamp": assistant_timestamp,
-            "function_calls": response["function_calls"]
-        }
+        "attachment": attachment
     }
 
 

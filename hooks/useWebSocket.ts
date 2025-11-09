@@ -8,6 +8,7 @@ export interface ChatAttachment {
   pages?: number;
   size_kb?: number;
   preview?: string;
+  extracted_text?: string;
 }
 
 export interface ChatMessage {
@@ -24,12 +25,11 @@ export interface ChatMessage {
 
 interface UseWebSocketReturn {
   messages: ChatMessage[];
-  sendMessage: (message: string) => void;
+  sendMessage: (message: string, options?: { attachments?: ChatAttachment[] }) => void;
   isConnected: boolean;
   isTyping: boolean;
   error: string | null;
   isInitializing: boolean;
-  appendMessages: (newMessages: ChatMessage[]) => void;
 }
 
 export function useWebSocket(userId: string | null): UseWebSocketReturn {
@@ -140,29 +140,32 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
     }
   }, [userId]);
 
-  const sendMessage = useCallback((message: string) => {
+  const sendMessage = useCallback((message: string, options?: { attachments?: ChatAttachment[] }) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       setError('Not connected. Please wait...');
       return;
     }
 
-    if (!message.trim()) {
+    if (!message.trim() && (!options || !options.attachments || options.attachments.length === 0)) {
       return;
     }
 
     try {
+      const trimmed = message.trim();
       // Add user message to chat immediately
       const userMessage: ChatMessage = {
         role: 'user',
-        content: message,
+        content: trimmed,
         timestamp: new Date().toISOString(),
+        attachments: options?.attachments,
       };
       setMessages((prev) => [...prev, userMessage]);
 
       // Send to server
       wsRef.current.send(JSON.stringify({
         user_id: userId,
-        message: message,
+        message: trimmed,
+        attachments: options?.attachments,
       }));
 
       setIsTyping(true);
@@ -192,11 +195,6 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]); // Only reconnect when userId changes, not when connect function changes
 
-  const appendMessages = useCallback((newMessages: ChatMessage[]) => {
-    if (!newMessages || newMessages.length === 0) return;
-    setMessages((prev) => [...prev, ...newMessages]);
-  }, []);
-
   return {
     messages,
     sendMessage,
@@ -204,6 +202,5 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
     isTyping,
     error,
     isInitializing,
-    appendMessages,
   };
 }

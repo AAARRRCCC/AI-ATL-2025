@@ -74,10 +74,34 @@ class Database:
         return [
             {
                 "role": msg["role"],
-                "content": msg["content"]
+                "content": self._build_content_with_attachments(msg)
             }
             for msg in messages
         ]
+
+    def _build_content_with_attachments(self, msg: Dict[str, Any]) -> str:
+        """Append attachment context to message content for AI history."""
+        content = msg.get("content", "")
+        attachments = msg.get("attachments") or []
+        if not attachments:
+            return content
+
+        attachment_descriptions = []
+        for attachment in attachments:
+            filename = attachment.get("filename", "attachment")
+            attachment_text = attachment.get("extracted_text") or attachment.get("preview")
+            if attachment_text:
+                attachment_descriptions.append(
+                    f"[Attachment: {filename}]\n{attachment_text}"
+                )
+
+        if attachment_descriptions:
+            if content:
+                content = f"{content}\n\n" + "\n\n".join(attachment_descriptions)
+            else:
+                content = "\n\n".join(attachment_descriptions)
+
+        return content
 
     async def save_message(
         self,

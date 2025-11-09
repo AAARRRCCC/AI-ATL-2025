@@ -1,9 +1,9 @@
 'use client';
 
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Loader2, UploadCloud, Wifi, WifiOff } from 'lucide-react';
+import { AlertCircle, Loader2, Trash2, UploadCloud, Wifi, WifiOff } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { ChatAttachment, useWebSocket } from '@/hooks/useWebSocket';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
@@ -13,6 +13,8 @@ interface ChatContainerProps {
   onDataChange?: () => void;
 }
 
+type PendingAttachment = ChatAttachment;
+
 export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
   const {
     messages,
@@ -21,19 +23,35 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
     isTyping,
     error,
     isInitializing,
-    appendMessages
   } = useWebSocket(userId);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Smoothly keep the latest message in view by animating the chat panel upward
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
     }
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth',
+      });
+    }, 50);
+
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
   }, [messages, isTyping]);
 
   // Trigger data refresh when new messages with function calls are received
@@ -140,6 +158,8 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
         `${dbData.deleted.messages} messages, and ${calendarData.deleted_count} calendar events`
       );
 
+      setPendingAttachments([]);
+
       // Trigger data refresh
       if (onDataChange) {
         onDataChange();
@@ -182,7 +202,7 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
     formData.append('file', file);
 
     setIsUploadingPdf(true);
-    const toastId = toast.loading('Uploading assignment PDF...');
+    const toastId = toast.loading('Attaching PDF...');
 
     try {
       const response = await fetch('/api/chat/upload', {
@@ -196,34 +216,38 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process PDF');
+        throw new Error(data.error || 'Failed to attach PDF');
       }
 
-      const normalizeMessage = (msg: any) => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp,
-        function_calls: msg.function_calls,
-        attachments: msg.attachments,
-      });
+      if (!data.attachment) {
+        throw new Error('Upload succeeded but no attachment was returned.');
+      }
 
-      const newMessages = [];
-      if (data.user_message) newMessages.push(normalizeMessage(data.user_message));
-      if (data.assistant_message) newMessages.push(normalizeMessage(data.assistant_message));
+      setPendingAttachments((prev) => [...prev, data.attachment]);
 
-      appendMessages(newMessages);
-
-      toast.success('Assignment uploaded and analyzed!', { id: toastId });
+      toast.success('PDF attached. Add a message and hit send when ready!', { id: toastId });
     } catch (err: any) {
       console.error('PDF upload failed:', err);
-      toast.error(err.message || 'Failed to upload PDF', { id: toastId });
+      toast.error(err.message || 'Failed to attach PDF', { id: toastId });
     } finally {
       setIsUploadingPdf(false);
     }
   };
 
+  const handleRemoveAttachment = (index: number) => {
+    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSendMessage = (text: string) => {
+    if (!text.trim() && pendingAttachments.length === 0) {
+      return;
+    }
+    sendMessage(text, { attachments: pendingAttachments });
+    setPendingAttachments([]);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col h-[600px] lg:h-[720px] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
         <div>
@@ -249,6 +273,19 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
               )}
             </div>
           )}
+
+          <button
+            onClick={handleClearChat}
+            disabled={isClearing}
+            className="flex items-center gap-2 rounded-md border border-red-200 dark:border-red-800 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+          >
+            {isClearing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            <span>Clear history</span>
+          </button>
         </div>
       </div>
 
@@ -273,7 +310,7 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
           <div>
             <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Upload assignment PDFs</p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              I&apos;ll extract the requirements and build a plan automatically.
+              Attach instructions now, then ask me when you&apos;re ready to analyze them.
             </p>
           </div>
         </div>
@@ -332,19 +369,19 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
             </p>
             <div className="mt-6 grid grid-cols-1 gap-2 w-full max-w-md">
               <button
-                onClick={() => sendMessage("I have a research paper due next Friday")}
+                onClick={() => handleSendMessage("I have a research paper due next Friday")}
                 className="px-4 py-2 text-sm text-left bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg transition-colors"
               >
                 💡 "I have a research paper due next Friday"
               </button>
               <button
-                onClick={() => sendMessage("Help me schedule time to study for my exam")}
+                onClick={() => handleSendMessage("Help me schedule time to study for my exam")}
                 className="px-4 py-2 text-sm text-left bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg transition-colors"
               >
                 📚 "Help me schedule time to study for my exam"
               </button>
               <button
-                onClick={() => sendMessage("What assignments do I have?")}
+                onClick={() => handleSendMessage("What assignments do I have?")}
                 className="px-4 py-2 text-sm text-left bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg transition-colors"
               >
                 📋 "What assignments do I have?"
@@ -358,16 +395,13 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
             ))}
 
             {isTyping && <TypingIndicator />}
-
-            {/* Scroll anchor */}
-            <div ref={messagesEndRef} />
           </>
         )}
       </div>
 
       {/* Input Area */}
       <ChatInput
-        onSend={sendMessage}
+        onSend={handleSendMessage}
         onUploadPdf={handleUploadPdf}
         disabled={!isConnected}
         placeholder={
@@ -376,6 +410,8 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
             : "Connecting to AI..."
         }
         isUploading={isUploadingPdf}
+        pendingAttachments={pendingAttachments}
+        onRemoveAttachment={handleRemoveAttachment}
       />
     </div>
   );
