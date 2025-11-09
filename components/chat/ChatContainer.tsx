@@ -359,7 +359,7 @@ export function ChatContainer({ userId, onDataChange, onCalendarRefresh }: ChatC
         {isInitializing ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4 animate-pulse">
-              <img src={catIcon.src} alt="cat" className="w-8 h-8 inline-block" />
+              <img src={catIcon.src} alt="cat" className="w-8 h-8 inline-block invert dark:invert-0" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Connecting...
@@ -371,7 +371,7 @@ export function ChatContainer({ userId, onDataChange, onCalendarRefresh }: ChatC
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             {/* <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4"> */}
-            <img src={catIcon.src} alt="cat" className="w-20 h-20 inline-block" />
+            <img src={catIcon.src} alt="cat" className="w-20 h-20 inline-block invert dark:invert-0" />
             {/* </div> */}
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Start a conversation!
