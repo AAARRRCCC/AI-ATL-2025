@@ -105,13 +105,16 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
       };
 
       ws.onerror = () => {
-        // Silently handle connection errors - they're expected when backend is not running
-        // The onclose handler will trigger reconnection logic
-        setError('Cannot connect to AI backend. Make sure the backend server is running on port 8000.');
+        // Don't show errors during initial connection - wait for onclose to handle it
+        // This prevents the error flash when the page first loads
+        if (!isInitializing) {
+          setError('Cannot connect to AI backend. Make sure the backend server is running on port 8000.');
+        }
       };
 
       ws.onclose = (event) => {
         setIsConnected(false);
+        setIsInitializing(false);
         wsRef.current = null;
 
         // Only log unexpected closures (not normal closures or going away)
@@ -128,8 +131,7 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
             connect();
           }, delay);
         } else {
-          // Give up reconnecting - stop showing initializing state
-          setIsInitializing(false);
+          // Give up reconnecting
           setError('Connection lost. Please refresh the page.');
         }
       };
