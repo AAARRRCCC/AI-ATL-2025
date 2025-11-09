@@ -126,6 +126,10 @@ export async function PUT(request: NextRequest) {
     };
 
     // Update only provided fields
+    if (updates.timezone !== undefined) {
+      updateFields.timezone = updates.timezone;
+    }
+
     if (updates.theme !== undefined) {
       updateFields.theme = updates.theme;
     }
@@ -183,6 +187,10 @@ export async function PUT(request: NextRequest) {
       if (updates.studySettings.calendarViewEnd !== undefined) {
         updateFields['studySettings.calendarViewEnd'] =
           updates.studySettings.calendarViewEnd;
+      }
+      if (updates.studySettings.scheduleBuffer !== undefined) {
+        updateFields['studySettings.scheduleBuffer'] =
+          updates.studySettings.scheduleBuffer;
       }
     }
 

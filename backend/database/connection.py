@@ -197,6 +197,52 @@ class Database:
             serialize_document(prefs)
         return prefs
 
+    async def update_user_preferences(
+        self,
+        user_id: str,
+        updates: Dict[str, Any]
+    ):
+        """
+        Update user preferences.
+
+        Args:
+            user_id: User's ID
+            updates: Dictionary of fields to update
+
+        Note:
+            Creates preferences document if it doesn't exist (upsert)
+        """
+        await self.db.user_preferences.update_one(
+            {"userId": ObjectId(user_id)},
+            {"$set": updates},
+            upsert=True
+        )
+
+    async def get_user_timezone(self, user_id: str) -> Optional[str]:
+        """
+        Get user's timezone setting.
+
+        Args:
+            user_id: User's ID
+
+        Returns:
+            IANA timezone string (e.g., "America/New_York") or None if not set
+        """
+        prefs = await self.get_user_preferences(user_id)
+        if prefs and "timezone" in prefs:
+            return prefs["timezone"]
+        return None
+
+    async def set_user_timezone(self, user_id: str, timezone: str):
+        """
+        Set user's timezone preference.
+
+        Args:
+            user_id: User's ID
+            timezone: IANA timezone string (e.g., "America/New_York")
+        """
+        await self.update_user_preferences(user_id, {"timezone": timezone})
+
     # ==================== ASSIGNMENT OPERATIONS ====================
 
     async def create_assignment(

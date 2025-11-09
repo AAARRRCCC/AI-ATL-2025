@@ -9,8 +9,14 @@ import google.generativeai as genai
 import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+import sys
+import os
 
 from .functions import tools
+
+# Add parent directory to path for utils import
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.time_parser import extract_time_preference
 
 
 class ChatHandler:
@@ -35,6 +41,15 @@ The user has configured preferences that you MUST respect:
 - Preferred study times: {preferred_times}
 - Productivity pattern: {productivity_pattern}
 - Daily study limit: {max_daily_hours} hours (prevent burnout)
+
+TIME RANGE DEFINITIONS (Use these consistently):
+═══════════════════════════════════════════════════════════════════════════════
+- Morning: 08:00 - 12:00 (8am - 12pm)
+- Midday: 12:00 - 17:00 (12pm - 5pm)
+- Evening: 17:00 - 21:00 (5pm - 9pm)
+
+These are FIXED definitions. When user has "midday" productivity preference, it means 12:00-17:00.
+═══════════════════════════════════════════════════════════════════════════════
 
 THINKING MODE - Your Superpower:
 You have access to thinking mode - use it EXTENSIVELY before every decision:
@@ -199,18 +214,32 @@ AVOID THESE MISTAKES:
 ❌ Creating 8 tasks when 3 would suffice
 ❌ Treating capable students like complete beginners
 
-IMPORTANT - User-Specified Times:
-When a user explicitly requests specific times like:
+🚨 CRITICAL RULE: USER-SPECIFIED TIMES ARE ABSOLUTE PRIORITY 🚨
+═══════════════════════════════════════════════════════════════════════════════
+
+When you see "[DETECTED_TIME_PREFERENCE: HH:MM-HH:MM]" at the start of a message, or the user says:
 - "Schedule this from 3 to 4"
 - "Can you put this at 2pm to 3pm?"
 - "I want to work on this from 15:00 to 16:00"
+- "I'm free between 9 and 11"
 
-You MUST use the preferred_start_time and preferred_end_time parameters in schedule_tasks:
-- Convert their time to 24-hour format: "3pm" → "15:00", "4am" → "04:00"
-- Pass both start and end times
-- Example: schedule_tasks(assignment_id="xyz", preferred_start_time="15:00", preferred_end_time="16:00")
+You MUST prioritize these user-specified times over ALL other preferences:
 
-Without these parameters, the function will use their general preferences instead of the specific times they requested.
+WORKFLOW FOR USER-SPECIFIED TIMES:
+1. Extract the times from the message or [DETECTED_TIME_PREFERENCE] tag
+2. Call analyze_scheduling_options with preferred_times parameter:
+   analyze_scheduling_options(
+       assignment_id="xyz",
+       date_range_start="2025-01-10",
+       date_range_end="2025-01-15",
+       preferred_times=[{{"start": "15:00", "end": "16:00"}}]
+   )
+3. Review the analysis to see if those times work (no conflicts)
+4. If conflict exists, find the CLOSEST available time and explain the adjustment
+5. Schedule using the analyzed times
+
+NEVER silently ignore user-specified times in favor of their general preferences!
+═══════════════════════════════════════════════════════════════════════════════
 
 IMPORTANT - Checking Conflicts:
 - ALWAYS call get_calendar_events FIRST to see their actual schedule
@@ -578,37 +607,96 @@ TASK MANIPULATION (Need task_id from visibility functions):
 13. delete_task(task_id, reason?) - Delete one task
 14. delete_tasks_by_assignment(assignment_id) - Delete all tasks for assignment
 
-SCHEDULING:
-15. get_calendar_events(start_date, end_date) - Check availability
-16. schedule_tasks(assignment_id, start_date?, end_date?, preferred_start_time?, preferred_end_time?)
-17. reschedule_task(task_id, new_start, new_end) - Move task
+SCHEDULING (Use in order: context → analyze → schedule):
+15. get_scheduling_context(date_range_start, date_range_end) - Get time ranges, preferences, calendar events, buffer settings
+16. analyze_scheduling_options(assignment_id, date_range_start, date_range_end, preferred_times?) - Analyze & score potential slots with reasoning
+17. get_calendar_events(start_date, end_date) - Check availability (use context instead for scheduling)
+18. schedule_tasks(assignment_id, start_date?, end_date?, preferred_start_time?, preferred_end_time?, proposed_schedule?) - Execute schedule
+19. reschedule_task(task_id, new_start, new_end) - Move task
 
 ═══════════════════════════════════════════════════════════════════════════════
-SCHEDULING INTELLIGENCE
+MULTI-STEP SCHEDULING WORKFLOW (Follow EVERY Time)
 ═══════════════════════════════════════════════════════════════════════════════
 
-The schedule_tasks function automatically:
-✓ Respects task dependencies (schedules prerequisites first)
-✓ Prioritizes urgent work (deadlines soon get prime time slots)
-✓ Manages cognitive load (limits daily hours, spaces intense work)
-✓ Adds buffer breaks (15 min between sessions)
-✓ Honors user preferences (days, times, productivity patterns)
-✓ Avoids all existing calendar commitments (zero overlap)
+CRITICAL: You now have THREE new tools for intelligent scheduling. Use them in this order:
 
-🚨 CRITICAL SCHEDULING RULE - NEVER CREATE OVERLAPS:
-When you call schedule_tasks with preferred_start_time and preferred_end_time, the function MUST:
-1. Check if those exact times conflict with calendar events or existing tasks
-2. If times ARE FREE → schedule at requested times
-3. If times CONFLICT → automatically find the next available free slot
-4. NEVER force a schedule that overlaps - always search for alternative times
+STEP 1: DETECT User-Specified Times
+─────────────────────────────────────
+- Check if message starts with "[DETECTED_TIME_PREFERENCE: X-Y]"
+- Or if user explicitly states times ("schedule from 3 to 4", "I'm free at 2pm")
+- These times ALWAYS override preference settings
 
-If user says "schedule from 3-4pm" and 3-4pm is busy, the function will find the next free hour.
-This is AUTOMATIC - you don't need to manually check, the function does conflict detection.
+STEP 2: GATHER Context
+─────────────────────────────────────
+Call get_scheduling_context(date_range_start, date_range_end)
 
-Before calling schedule_tasks, ALWAYS:
-1. Call get_calendar_events to see their commitments
-2. Think through how work fits around those events
-3. Explain which events you saw and how you'll work around them
+Returns:
+- time_ranges: Definitions of morning (08:00-12:00), midday (12:00-17:00), evening (17:00-21:00)
+- user_preferences: productivity pattern, preferred times, buffer settings, timezone
+- calendar_events: Existing commitments in the date range
+- daily_availability: Which days are available for study
+
+Review this to understand:
+✓ What time ranges are available?
+✓ Are there calendar conflicts?
+✓ What are the user's preferences?
+✓ What's the buffer between tasks?
+
+STEP 3: ANALYZE Options
+─────────────────────────────────────
+Call analyze_scheduling_options(assignment_id, date_range_start, date_range_end, preferred_times?)
+
+For EACH task, returns TOP 5 scored time slots with reasoning:
+- score: How good this slot is (0-100)
+- reasons: ["✅ No conflicts", "✅ Matches midday preference", "⚠️ Only 10min break before", etc.]
+- start/end: When to schedule
+
+Scoring criteria (in priority order):
+1. ⭐ User-specified times (e.g., from "[DETECTED_TIME_PREFERENCE]") = +25 points
+2. ✅ No calendar conflicts = +30 points (hard constraint)
+3. ✅ Adequate breaks (15+ min before/after) = +15 points each
+4. ✅ Matches productivity pattern preference = +20 points
+5. ✅ Within configured study hours = +10 points
+
+STEP 4: REASON About Best Option
+─────────────────────────────────────
+Review the analysis and EXPLAIN your thinking to the user:
+
+Good example:
+"I analyzed your schedule for this week. You're free from 2-4pm and 6-8pm on Monday.
+Given your midday productivity preference, I recommend 2-4pm because:
+- No conflicts with your existing calendar
+- Matches your midday work preference (12-5pm)
+- Gives you 30 minutes break after your 1:30pm meeting
+Let me schedule that now."
+
+Bad example (DON'T do this):
+"Okay, I'll schedule it." [calls schedule_tasks without analysis]
+
+Ask yourself:
+- Does this slot overlap with existing events? ❌ Reject if yes
+- Does it allow adequate breaks (15+ min)? ✅ Prefer if yes
+- Does it match user guidelines? Priority order:
+  1. Explicit times from conversation (highest priority)
+  2. User preference settings (productivity pattern, preferred times)
+  3. Assignment urgency/deadline
+
+STEP 5: EXECUTE Schedule
+─────────────────────────────────────
+Call schedule_tasks(assignment_id, ...) with your chosen approach
+
+The function still handles:
+✓ Task dependencies (prerequisites first)
+✓ Cognitive load management (spacing intense work)
+✓ Conflict re-verification (double-checks slots are still free)
+
+If it fails, explain why and try an alternative from your analysis.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚨 CRITICAL: NEVER skip the analysis step! Even if you think you know what to do,
+call analyze_scheduling_options first. It provides the reasoning you need to explain
+decisions to the user and catch conflicts you might miss.
 4. Trust that schedule_tasks will find free time slots (it has conflict detection built-in)
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -680,14 +768,26 @@ Be helpful, realistic, adaptive, and focused on sustainable academic success.
         else:
             times_str = "Not specified (will use productivity pattern)"
 
-        system_instruction = self.SYSTEM_INSTRUCTION.format(
-            current_date=current_date,
-            max_task_duration=max_task_duration,
-            days_available=days_str,
-            preferred_times=times_str,
-            productivity_pattern=productivity_pattern,
-            max_daily_hours=max_daily_hours
-        )
+        try:
+            system_instruction = self.SYSTEM_INSTRUCTION.format(
+                current_date=current_date,
+                max_task_duration=max_task_duration,
+                days_available=days_str,
+                preferred_times=times_str,
+                productivity_pattern=productivity_pattern,
+                max_daily_hours=max_daily_hours
+            )
+        except KeyError as e:
+            print(f"\n{'='*60}")
+            print(f"❌ ERROR: Missing key in system instruction formatting")
+            print(f"Missing key: {e}")
+            print(f"Available keys: current_date, max_task_duration, days_available, preferred_times, productivity_pattern, max_daily_hours")
+            print(f"\nSearching for all placeholders in SYSTEM_INSTRUCTION...")
+            import re
+            placeholders = re.findall(r'\{([^}]+)\}', self.SYSTEM_INSTRUCTION)
+            print(f"Found placeholders: {set(placeholders)}")
+            print(f"{'='*60}\n")
+            raise
 
         # Initialize Gemini model with function calling and thinking enabled
         return genai.GenerativeModel(
@@ -733,12 +833,23 @@ Be helpful, realistic, adaptive, and focused on sustainable academic success.
             # Start chat session with history
             chat = model.start_chat(history=gemini_history)
 
+            # Parse message for explicit time preferences
+            time_tag = extract_time_preference(user_message)
+            processed_message = user_message
+
+            if time_tag:
+                # Prepend time preference tag to message
+                processed_message = f"{time_tag}\n\n{user_message}"
+                print(f"\n{'='*60}")
+                print(f"🕐 DETECTED USER TIME PREFERENCE: {time_tag}")
+                print(f"{'='*60}\n")
+
             # Send user message
             print(f"\n{'='*60}")
-            print(f"Processing user message: {user_message[:100]}...")
+            print(f"Processing user message: {processed_message[:100]}...")
             print(f"{'='*60}\n")
 
-            response = chat.send_message(user_message)
+            response = chat.send_message(processed_message)
 
             print(f"Gemini response received")
             print(f"Candidates: {len(response.candidates) if hasattr(response, 'candidates') else 0}")
@@ -966,7 +1077,8 @@ Be helpful, realistic, adaptive, and focused on sustainable academic success.
                     args.get("start_date"),
                     args.get("end_date"),
                     args.get("preferred_start_time"),
-                    args.get("preferred_end_time")
+                    args.get("preferred_end_time"),
+                    args.get("proposed_schedule")
                 )
 
             elif name == "update_task_status":
@@ -1085,11 +1197,44 @@ Be helpful, realistic, adaptive, and focused on sustainable academic success.
                     args.get("status_filter")
                 )
 
+            # ═══════════════════════════════════════════════════════════════
+            # INTELLIGENT SCHEDULING FUNCTIONS
+            # ═══════════════════════════════════════════════════════════════
+            elif name == "get_scheduling_context":
+                return await function_executor.get_scheduling_context(
+                    user_id,
+                    args["date_range_start"],
+                    args["date_range_end"]
+                )
+
+            elif name == "analyze_scheduling_options":
+                return await function_executor.analyze_scheduling_options(
+                    user_id,
+                    args["assignment_id"],
+                    args["date_range_start"],
+                    args["date_range_end"],
+                    args.get("preferred_times")
+                )
+
             else:
                 return {"error": f"Unknown function: {name}"}
 
         except Exception as e:
+            import traceback
+            error_traceback = traceback.format_exc()
+
+            print(f"\n{'='*60}")
+            print(f"❌ ERROR: Function execution failed")
+            print(f"Function: {name}")
+            print(f"Args: {args}")
+            print(f"Exception Type: {type(e).__name__}")
+            print(f"Exception Message: {str(e)}")
+            print(f"\nFull Traceback:")
+            print(error_traceback)
+            print(f"{'='*60}\n")
+
             return {
-                "error": f"Function execution failed: {str(e)}",
-                "function": name
+                "error": f"Function execution failed: {type(e).__name__}: {str(e)}",
+                "function": name,
+                "traceback": error_traceback
             }

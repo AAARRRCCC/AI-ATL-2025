@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 export interface UserPreferences {
   _id?: ObjectId;
   userId: ObjectId;
+  timezone?: string; // IANA timezone string (e.g., "America/New_York")
   theme: 'light' | 'dark' | 'auto';
   notifications: {
     email: boolean;
@@ -26,6 +27,7 @@ export interface UserPreferences {
     assignmentDeadlineBuffer: number; // days before deadline to prefer scheduling work
     calendarViewStart?: string; // HH:MM format - start hour for calendar view
     calendarViewEnd?: string; // HH:MM format - end hour for calendar view
+    scheduleBuffer?: number; // minutes of buffer between scheduled tasks (default: 15)
   };
   calendarIntegration: {
     enabled: boolean;
@@ -39,6 +41,7 @@ export interface UserPreferences {
 export interface UserPreferencesResponse {
   _id: string;
   userId: string;
+  timezone?: string;
   theme: 'light' | 'dark' | 'auto';
   notifications: {
     email: boolean;
@@ -62,6 +65,7 @@ export interface UserPreferencesResponse {
     assignmentDeadlineBuffer: number;
     calendarViewStart?: string;
     calendarViewEnd?: string;
+    scheduleBuffer?: number;
   };
   calendarIntegration: {
     enabled: boolean;
@@ -73,6 +77,7 @@ export interface UserPreferencesResponse {
 }
 
 export interface UpdatePreferencesInput {
+  timezone?: string;
   theme?: 'light' | 'dark' | 'auto';
   notifications?: {
     email?: boolean;
@@ -96,6 +101,7 @@ export interface UpdatePreferencesInput {
     assignmentDeadlineBuffer?: number;
     calendarViewStart?: string;
     calendarViewEnd?: string;
+    scheduleBuffer?: number;
   };
   calendarIntegration?: {
     enabled?: boolean;
@@ -126,6 +132,7 @@ export const DEFAULT_USER_PREFERENCES: Omit<
     assignmentDeadlineBuffer: 2, // 2 days before deadline
     calendarViewStart: '08:00', // 8 AM default
     calendarViewEnd: '23:59', // 11:59 PM default
+    scheduleBuffer: 15, // 15 minutes buffer between tasks
   },
   calendarIntegration: {
     enabled: false,

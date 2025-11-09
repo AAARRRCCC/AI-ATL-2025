@@ -113,6 +113,28 @@ AVAILABLE_FUNCTIONS = [
                 "preferred_end_time": glm.Schema(
                     type=glm.Type.STRING,
                     description="When user specifies exact end time (e.g., '4pm', '16:00'), provide in HH:MM 24-hour format. Only use this when user explicitly states a time."
+                ),
+                "proposed_schedule": glm.Schema(
+                    type=glm.Type.ARRAY,
+                    description="Optional: Your proposed schedule from analyze_scheduling_options. If provided, these exact times will be used (with conflict re-verification). Format: array of {task_id, start, end}",
+                    items=glm.Schema(
+                        type=glm.Type.OBJECT,
+                        properties={
+                            "task_id": glm.Schema(
+                                type=glm.Type.STRING,
+                                description="Task ID to schedule"
+                            ),
+                            "start": glm.Schema(
+                                type=glm.Type.STRING,
+                                description="Proposed start datetime (ISO format: YYYY-MM-DDTHH:MM:SS)"
+                            ),
+                            "end": glm.Schema(
+                                type=glm.Type.STRING,
+                                description="Proposed end datetime (ISO format: YYYY-MM-DDTHH:MM:SS)"
+                            )
+                        },
+                        required=["task_id", "start", "end"]
+                    )
                 )
             },
             required=["assignment_id"]
@@ -156,6 +178,64 @@ AVAILABLE_FUNCTIONS = [
                 )
             },
             required=["start_date", "end_date"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="get_scheduling_context",
+        description="Get comprehensive scheduling context including time range definitions (morning: 08:00-12:00, midday: 12:00-17:00, evening: 17:00-21:00), user preferences, calendar availability, and buffer settings. Use this FIRST when planning schedules to understand constraints.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "date_range_start": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Start date for checking availability (YYYY-MM-DD)"
+                ),
+                "date_range_end": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="End date for checking availability (YYYY-MM-DD)"
+                )
+            },
+            required=["date_range_start", "date_range_end"]
+        )
+    ),
+    glm.FunctionDeclaration(
+        name="analyze_scheduling_options",
+        description="Analyze potential time slots for scheduling tasks, considering calendar conflicts, break times, and user preferences/guidelines. Returns scored slot options with reasoning. Use this BEFORE calling schedule_tasks to make informed decisions.",
+        parameters=glm.Schema(
+            type=glm.Type.OBJECT,
+            properties={
+                "assignment_id": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="The assignment whose tasks need scheduling"
+                ),
+                "date_range_start": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="Start date for searching slots (YYYY-MM-DD)"
+                ),
+                "date_range_end": glm.Schema(
+                    type=glm.Type.STRING,
+                    description="End date for searching slots (YYYY-MM-DD)"
+                ),
+                "preferred_times": glm.Schema(
+                    type=glm.Type.ARRAY,
+                    description="Optional: User-specified preferred time windows (higher priority than general preferences)",
+                    items=glm.Schema(
+                        type=glm.Type.OBJECT,
+                        properties={
+                            "start": glm.Schema(
+                                type=glm.Type.STRING,
+                                description="Start time in HH:MM format (24-hour)"
+                            ),
+                            "end": glm.Schema(
+                                type=glm.Type.STRING,
+                                description="End time in HH:MM format (24-hour)"
+                            )
+                        },
+                        required=["start", "end"]
+                    )
+                )
+            },
+            required=["assignment_id", "date_range_start", "date_range_end"]
         )
     ),
     glm.FunctionDeclaration(
