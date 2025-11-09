@@ -61,6 +61,7 @@ export async function DELETE(request: NextRequest) {
     console.log(`🗑️ Deleted event ${eventId} from Google Calendar`);
 
     // If we found a task ID, delete from database
+    let deletedAssignment = false;
     if (taskId) {
       const db = await getDatabase();
       const tasksCollection = db.collection("subtasks");
@@ -86,6 +87,7 @@ export async function DELETE(request: NextRequest) {
           if (remainingTasks === 0) {
             await assignmentsCollection.deleteOne({ _id: new ObjectId(assignmentId) });
             console.log(`🗑️ Deleted assignment ${assignmentId} (no tasks remaining)`);
+            deletedAssignment = true;
           }
         }
       }
@@ -94,7 +96,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       deletedTask: !!taskId,
-      deletedAssignment: assignmentId && taskId ? true : false
+      deletedAssignment: deletedAssignment
     });
   } catch (error) {
     console.error("Delete event error:", error);
