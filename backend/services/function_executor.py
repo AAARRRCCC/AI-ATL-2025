@@ -396,44 +396,86 @@ class FunctionExecutor:
 
                     print(f"📝 Scheduling '{task_title}' at {proposed_start} to {proposed_end}")
 
-                    # Update task in database
-                    await self.db.update_task(task_id, {
-                        "scheduled_start": proposed_start,
-                        "scheduled_end": proposed_end
-                    })
-
-                    # Create calendar event using atomic function (with conflict re-verification)
-                    calendar_result = await create_calendar_event_atomic(
-                        task_id=task_id,
-                        title=f"{assignment.get('title', 'Assignment')}: {task_title}",
-                        scheduled_start=proposed_start,
-                        scheduled_end=proposed_end,
-                        description=task.get("description", ""),
-                        intensity=task.get("intensity", "normal")
-                    )
-
-                    if calendar_result.get("success"):
-                        scheduled_tasks.append({
-                            "task_id": task_id,
-                            "task_title": task_title,
-                            "start": start_iso,
-                            "end": end_iso,
-                            "created": True
-                        })
-                        print(f"   ✅ Successfully scheduled '{task_title}'")
-                    else:
-                        # Rollback database update
-                        await self.db.update_task(task_id, {
-                            "scheduled_start": None,
-                            "scheduled_end": None
-                        })
-                        error_msg = calendar_result.get("error", "Unknown error")
-                        print(f"   ❌ Failed to schedule '{task_title}': {error_msg}")
+                    # Create calendar event directly via API
+                    if not self.auth_token:
+                        print(f"   ❌ No auth token available")
                         failed_tasks.append({
                             "task_id": task_id,
                             "task_title": task_title,
-                            "error": error_msg
+                            "error": "No authentication token available"
                         })
+                        continue
+
+                    # Prepare task data for calendar API
+                    full_title = f"{assignment.get('title', 'Assignment')} - {task_title}"
+                    task_data = {
+                        "task_id": task_id,
+                        "title": full_title,
+                        "scheduled_start": proposed_start.isoformat(),
+                        "scheduled_end": proposed_end.isoformat(),
+                        "duration_minutes": int((proposed_end - proposed_start).total_seconds() / 60),
+                        "description": task.get("description", ""),
+                        "intensity": task.get("intensity", "medium")
+                    }
+
+                    try:
+                        # Call calendar API to create event
+                        async with httpx.AsyncClient() as client:
+                            response = await client.post(
+                                f"{self.api_base_url}/api/calendar/create-events",
+                                json={"tasks": [task_data]},
+                                headers={"Authorization": f"Bearer {self.auth_token}"},
+                                timeout=30.0
+                            )
+
+                            if response.status_code == 200:
+                                result = response.json()
+                                created_events = result.get("created_events", [])
+                                errors = result.get("errors", [])
+
+                                if len(created_events) > 0:
+                                    # Success - update task in database
+                                    await self.db.update_task(task_id, {
+                                        "scheduled_start": proposed_start,
+                                        "scheduled_end": proposed_end,
+                                        "status": "scheduled"
+                                    })
+
+                                    scheduled_tasks.append({
+                                        "task_id": task_id,
+                                        "task_title": task_title,
+                                        "start": start_iso,
+                                        "end": end_iso,
+                                        "created": True,
+                                        "event_id": created_events[0].get("id")
+                                    })
+                                    print(f"   ✅ Successfully scheduled '{task_title}'")
+                                else:
+                                    # Event creation failed
+                                    error_msg = errors[0] if errors else "Unknown error"
+                                    print(f"   ❌ Failed to create calendar event: {error_msg}")
+                                    failed_tasks.append({
+                                        "task_id": task_id,
+                                        "task_title": task_title,
+                                        "error": str(error_msg)
+                                    })
+                            else:
+                                error_msg = f"API returned status {response.status_code}"
+                                print(f"   ❌ Calendar API error: {error_msg}")
+                                failed_tasks.append({
+                                    "task_id": task_id,
+                                    "task_title": task_title,
+                                    "error": error_msg
+                                })
+
+                    except Exception as e:
+                        print(f"   ❌ Exception creating calendar event: {e}")
+                        failed_tasks.append({
+                            "task_id": task_id,
+                            "task_title": task_title,
+                            "error": f"Exception: {str(e)}"
+                        })
+
 
                 # Return result
                 print(f"\n{'='*60}")
