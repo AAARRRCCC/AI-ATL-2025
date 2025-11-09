@@ -46,12 +46,13 @@ Available Functions:
 
 Workflow When Student Describes an Assignment:
 1. Gather Information: Ask about scope, requirements, familiarity with topic, and any special considerations
-2. Create Assignment: Call create_assignment with complete details including difficulty level
+2. Create Assignment: Call create_assignment ONCE with complete details including difficulty level
 3. Analyze & Break Down: Think critically about what steps are actually needed to complete this work
    - Consider the assignment type (essay, problem set, project, exam prep, presentation, etc.)
    - Think about logical phases of work (research, planning, execution, review, etc.)
    - Estimate realistic time based on scope, difficulty, and student's familiarity
-4. Create Subtasks: Call create_subtasks with your analyzed breakdown
+4. Create Subtasks: Call create_subtasks ONCE for the assignment with your analyzed breakdown
+   IMPORTANT: Only call create_subtasks ONE TIME per assignment. Do not create subtasks multiple times.
    Example format:
    {{
      "assignment_id": "abc123",
@@ -144,9 +145,9 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
         current_date = datetime.now().strftime("%B %d, %Y")  # e.g., "November 08, 2025"
         system_instruction = self.SYSTEM_INSTRUCTION.format(current_date=current_date)
 
-        # Initialize Gemini model with function calling
+        # Initialize Gemini model with function calling and thinking enabled
         self.model = genai.GenerativeModel(
-            model_name='gemini-flash-latest',  # Auto-updates to latest flash model
+            model_name='gemini-2.0-flash-thinking-exp',  # Model with thinking support
             tools=tools,
             system_instruction=system_instruction
         )
@@ -199,6 +200,10 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
 
             function_results = []
 
+            # Track created items to prevent duplicates in this conversation turn
+            created_assignments = {}  # title -> assignment_id
+            created_subtasks_for = set()  # set of assignment_ids that already have subtasks
+
             # Handle function calls in a loop (AI might chain multiple calls)
             while response.candidates[0].content.parts:
                 has_function_call = False
@@ -231,16 +236,57 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
 
                         args_dict = proto_to_dict(dict(fn.args))
 
-                        print(f"Function call: {fn.name}")
+                        print(f"\nFunction call: {fn.name}")
                         print(f"Arguments: {args_dict}")
 
-                        # Execute the function
-                        result = await self._execute_function(
-                            fn.name,
-                            args_dict,
-                            user_id,
-                            function_executor
-                        )
+                        # Check for duplicates before executing
+                        skip_execution = False
+
+                        if fn.name == "create_assignment":
+                            title = args_dict.get("title", "")
+                            if title in created_assignments:
+                                print(f"⚠️  DUPLICATE DETECTED: Assignment '{title}' already created. Skipping.")
+                                result = {
+                                    "success": True,
+                                    "assignment_id": created_assignments[title],
+                                    "message": f"Assignment '{title}' already exists (preventing duplicate)",
+                                    "duplicate_prevented": True
+                                }
+                                skip_execution = True
+
+                        elif fn.name == "create_subtasks":
+                            assignment_id = args_dict.get("assignment_id", "")
+                            if assignment_id in created_subtasks_for:
+                                print(f"⚠️  DUPLICATE DETECTED: Subtasks for assignment {assignment_id} already created. Skipping.")
+                                result = {
+                                    "success": True,
+                                    "message": f"Subtasks for assignment {assignment_id} already exist (preventing duplicate)",
+                                    "duplicate_prevented": True
+                                }
+                                skip_execution = True
+
+                        # Execute the function if not a duplicate
+                        if not skip_execution:
+                            result = await self._execute_function(
+                                fn.name,
+                                args_dict,
+                                user_id,
+                                function_executor
+                            )
+
+                            # Track created items
+                            if fn.name == "create_assignment" and result.get("success"):
+                                title = args_dict.get("title", "")
+                                assignment_id = result.get("assignment_id")
+                                if title and assignment_id:
+                                    created_assignments[title] = assignment_id
+                                    print(f"✅ Tracked new assignment: '{title}' -> {assignment_id}")
+
+                            elif fn.name == "create_subtasks" and result.get("success"):
+                                assignment_id = args_dict.get("assignment_id")
+                                if assignment_id:
+                                    created_subtasks_for.add(assignment_id)
+                                    print(f"✅ Tracked subtasks created for assignment: {assignment_id}")
 
                         function_results.append({
                             "name": fn.name,
