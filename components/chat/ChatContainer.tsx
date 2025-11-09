@@ -186,8 +186,7 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
-        style={{ maxHeight: 'calc(100vh - 400px)' }}
+        className="flex-1 overflow-y-auto px-6 py-4 space-y-4 min-h-0"
       >
         {isInitializing ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
