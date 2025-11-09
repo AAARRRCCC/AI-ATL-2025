@@ -195,7 +195,7 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
 
         # Initialize Gemini model with function calling and thinking enabled
         self.model = genai.GenerativeModel(
-            model_name='gemini-2.0-flash-thinking-exp',  # Model with thinking support
+            model_name='gemini-2.5-flash',  # Model with thinking support
             tools=tools,
             system_instruction=system_instruction
         )
