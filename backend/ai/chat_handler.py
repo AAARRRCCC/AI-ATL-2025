@@ -207,20 +207,44 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
                     if fn := part.function_call:
                         has_function_call = True
 
+                        # Convert proto args to regular dict properly
+                        def proto_to_dict(obj):
+                            """Recursively convert proto objects to plain Python dicts"""
+                            if isinstance(obj, (str, int, float, bool, type(None))):
+                                return obj
+                            elif isinstance(obj, dict):
+                                return {k: proto_to_dict(v) for k, v in obj.items()}
+                            elif isinstance(obj, (list, tuple)):
+                                return [proto_to_dict(item) for item in obj]
+                            elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
+                                # Handle proto repeated/map objects
+                                if hasattr(obj, 'items'):
+                                    return {k: proto_to_dict(v) for k, v in obj.items()}
+                                else:
+                                    return [proto_to_dict(item) for item in obj]
+                            else:
+                                # Try to convert to dict if it has dict-like interface
+                                try:
+                                    return dict(obj)
+                                except (TypeError, ValueError):
+                                    return str(obj)
+
+                        args_dict = proto_to_dict(dict(fn.args))
+
                         print(f"Function call: {fn.name}")
-                        print(f"Arguments: {dict(fn.args)}")
+                        print(f"Arguments: {args_dict}")
 
                         # Execute the function
                         result = await self._execute_function(
                             fn.name,
-                            dict(fn.args),
+                            args_dict,
                             user_id,
                             function_executor
                         )
 
                         function_results.append({
                             "name": fn.name,
-                            "input": dict(fn.args),
+                            "input": args_dict,
                             "result": result
                         })
 
