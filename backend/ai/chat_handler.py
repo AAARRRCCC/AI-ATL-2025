@@ -232,11 +232,31 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
             chat = self.model.start_chat(history=gemini_history)
 
             # Send user message
+            print(f"\n{'='*60}")
+            print(f"Processing user message: {user_message[:100]}...")
+            print(f"{'='*60}\n")
+
             response = chat.send_message(user_message)
 
+            print(f"Gemini response received")
+            print(f"Candidates: {len(response.candidates) if hasattr(response, 'candidates') else 0}")
+
+            # Validate response structure
+            if not hasattr(response, 'candidates') or len(response.candidates) == 0:
+                print(f"ERROR: Invalid response structure - no candidates")
+                print(f"Response: {response}")
+                return {
+                    "message": "I apologize, but I received an unexpected response. Please try again.",
+                    "function_calls": [],
+                    "error": "invalid_response_structure"
+                }
+
+            candidate = response.candidates[0]
+
             # Check for malformed function calls
-            if hasattr(response.candidates[0], 'finish_reason'):
-                finish_reason = str(response.candidates[0].finish_reason)
+            if hasattr(candidate, 'finish_reason'):
+                finish_reason = str(candidate.finish_reason)
+                print(f"Finish reason: {finish_reason}")
                 if 'MALFORMED_FUNCTION_CALL' in finish_reason:
                     print(f"ERROR: Malformed function call detected")
                     print(f"Response: {response}")
@@ -246,6 +266,16 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
                         "error": "malformed_function_call"
                     }
 
+            # Validate content structure
+            if not hasattr(candidate, 'content') or not hasattr(candidate.content, 'parts'):
+                print(f"ERROR: Invalid candidate structure - no content or parts")
+                print(f"Candidate: {candidate}")
+                return {
+                    "message": "I apologize, but I received an unexpected response. Please try again.",
+                    "function_calls": [],
+                    "error": "invalid_candidate_structure"
+                }
+
             function_results = []
 
             # Track created items to prevent duplicates in this conversation turn
@@ -253,10 +283,10 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
             created_subtasks_for = set()  # set of assignment_ids that already have subtasks
 
             # Handle function calls in a loop (AI might chain multiple calls)
-            while response.candidates[0].content.parts:
+            while candidate.content.parts:
                 has_function_call = False
 
-                for part in response.candidates[0].content.parts:
+                for part in candidate.content.parts:
                     if fn := part.function_call:
                         has_function_call = True
 
@@ -354,15 +384,24 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
                                 }]
                             }
                         )
+                        # Update candidate for next iteration
+                        if hasattr(response, 'candidates') and len(response.candidates) > 0:
+                            candidate = response.candidates[0]
 
                 if not has_function_call:
                     break
 
-            # Extract final text response
+            # Extract final text response (filter out thinking blocks if present)
             final_message = ""
-            for part in response.candidates[0].content.parts:
-                if part.text:
+            for part in candidate.content.parts:
+                if hasattr(part, 'text') and part.text:
                     final_message += part.text
+
+            # If no text message, provide a default
+            if not final_message and function_results:
+                final_message = "I've completed the requested actions."
+            elif not final_message:
+                final_message = "I understand. How can I help you with your assignments?"
 
             return {
                 "message": final_message,

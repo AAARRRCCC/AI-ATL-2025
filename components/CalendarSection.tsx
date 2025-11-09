@@ -172,18 +172,18 @@ export function CalendarSection({ userId, isCalendarConnected, onDataChange, onR
     };
   }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchEvents(true);
     // Also trigger widget count refresh on manual refresh
     onDataChange?.();
-  };
+  }, [fetchEvents, onDataChange]);
 
   // Expose refresh function to parent
   useEffect(() => {
     if (onRefreshReady) {
-      onRefreshReady(() => fetchEvents(true));
+      onRefreshReady(handleRefresh);
     }
-  }, [onRefreshReady]);
+  }, [onRefreshReady, handleRefresh]);
 
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
