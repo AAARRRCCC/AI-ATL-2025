@@ -41,7 +41,7 @@ AVAILABLE_FUNCTIONS = [
     ),
     glm.FunctionDeclaration(
         name="create_subtasks",
-        description="Create subtasks for an assignment with custom titles, descriptions, phases, time estimates, dependencies, and intensity levels. Call ONCE per assignment after analyzing what steps are needed. IMPORTANT: Create 2-4 substantial work blocks, not 6-8 micro-tasks. Duration estimates will be clamped to user's configured max task duration.",
+        description="Create subtasks for an assignment with custom titles, descriptions, phases, time estimates, dependencies, and intensity levels. Call ONCE per assignment after analyzing what steps are needed. IMPORTANT: Create 2-4 substantial work blocks, not 6-8 micro-tasks. Duration estimates will be clamped to user's configured max task duration. CRITICAL: After creating subtasks, you MUST immediately call schedule_tasks to create calendar events - subtasks without calendar events are invisible to the user.",
         parameters=glm.Schema(
             type=glm.Type.OBJECT,
             properties={
@@ -90,7 +90,7 @@ AVAILABLE_FUNCTIONS = [
     ),
     glm.FunctionDeclaration(
         name="schedule_tasks",
-        description="Intelligently schedule subtasks by finding optimal free time slots. AUTOMATICALLY: respects task dependencies (schedules prerequisites first), prioritizes urgent deadlines, adds 15-min buffer breaks between sessions, limits daily study hours, avoids back-to-back intense work, honors user's available days/times, and ensures ZERO overlap with existing calendar events. If user specifies exact times (e.g., '3 to 4', '2pm to 3pm'), use preferred_start_time and preferred_end_time parameters.",
+        description="REQUIRED AFTER create_subtasks: Intelligently schedule subtasks by finding optimal free time slots and creating Google Calendar events. This function MUST be called immediately after create_subtasks - it's the only way to add events to the user's calendar. AUTOMATICALLY: respects task dependencies (schedules prerequisites first), prioritizes urgent deadlines, adds 15-min buffer breaks between sessions, limits daily study hours, avoids back-to-back intense work, honors user's available days/times, and ensures ZERO overlap with existing calendar events. If user specifies exact times (e.g., '3 to 4', '2pm to 3pm'), use preferred_start_time and preferred_end_time parameters.",
         parameters=glm.Schema(
             type=glm.Type.OBJECT,
             properties={
