@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📚 SteadyStudy
+# SteadyStudy
 
 ### AI-Powered Study Planning for Modern Students
 
@@ -12,55 +12,54 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-[Features](#-features) • [Demo](#-demo) • [Quick Start](#-quick-start) • [Tech Stack](#-tech-stack) • [Documentation](#-documentation)
+[Features](#features) • [Quick Start](#quick-start) • [Tech Stack](#tech-stack) • [Documentation](#documentation)
 
 ---
 
 </div>
 
-## 🎯 Overview
+## Overview
 
 **SteadyStudy** is an intelligent study planning application built for the **AI ATL 2025 Hackathon**. It uses Google's Gemini AI to break down complex assignments into manageable tasks, automatically schedules them based on your Google Calendar availability, and provides a conversational interface for managing your entire academic workload.
 
 ### The Problem We Solve
 
 Students often struggle with:
-- 📅 **Breaking down large assignments** into actionable steps
-- ⏰ **Finding time to study** amidst busy schedules
-- 🔄 **Adapting plans** when life gets in the way
-- 📊 **Staying motivated** without visible progress tracking
+-  **Breaking down large assignments** into actionable steps
+-  **Finding time to study** amidst busy schedules
+-  **Adapting plans** when life gets in the way
+-  **Staying motivated** without visible progress tracking
 
 ### Our Solution
 
 SteadyStudy combines AI intelligence with calendar integration to:
-- 🤖 **Intelligently decompose** assignments into phases (research, drafting, revision)
-- 🗓️ **Auto-schedule** study sessions in your actual free time
-- 💬 **Conversational interface** - just tell the AI what's due and when
-- ✅ **Track progress** and maintain study momentum
+-  **Intelligently decompose** assignments into phases (research, drafting, revision)
+-  **Auto-schedule** study sessions in your actual free time
+-  **Conversational interface** - just tell the AI what's due and when
+-  **Track progress** and maintain study momentum
 
 ---
 
-## ✨ Features
+## Features
 
-### 🧠 AI-Powered Chat Interface
+###  AI-Powered Chat Interface
 - **Natural language interaction** with Google Gemini
 - **Function calling** - AI can create assignments, schedule tasks, and query your calendar
 - **Real-time responses** via WebSocket connection
 - **Context-aware** suggestions based on your study history
 
-### 📆 Smart Calendar Integration
+###  Smart Calendar Integration
 - **Two-way Google Calendar sync** - read existing events, write study sessions
 - **Drag-and-drop rescheduling** - visual calendar interface
 - **Intelligent time-finding** - analyzes free blocks in your schedule
 - **Color-coded events** - distinguish task types at a glance
 
-### ⚙️ Personalized Preferences
-- **Study time preferences** - morning person or night owl?
+###  Personalized Preferences
 - **Available days** - work around your schedule
 - **Task difficulty levels** - AI adjusts time allocation
 - **Theme support** - dark mode for late-night study sessions
 
-### 🔐 Secure Authentication
+###  Secure Authentication
 - **Email/password** registration and login
 - **Google OAuth** for seamless calendar access
 - **JWT tokens** with secure session management
@@ -68,26 +67,21 @@ SteadyStudy combines AI intelligence with calendar integration to:
 
 ---
 
-## 🎪 Demo
-
-> **⚡ Hackathon Demo Mode**
-> This project is optimized for impressive local demonstrations. Security and deployment considerations are simplified to focus on showcasing AI-powered study planning capabilities.
-
 ### Typical User Flow
 
-1. **🏠 Landing Page** - Professional hero section with animated background
-2. **👤 Create Account** - Sign up with email/password in seconds
-3. **🔗 Connect Calendar** - One-click Google OAuth integration
-4. **⚙️ Set Preferences** - Choose your ideal study times and available days
-5. **💬 Chat with AI** - "I have a 10-page research paper due next Friday"
-6. **🎯 AI Planning** - Breaks down into research, outline, draft, and revision phases
-7. **📅 View Schedule** - Auto-scheduled study sessions appear in your calendar
-8. **🖱️ Drag to Adjust** - Reschedule sessions with visual calendar interface
-9. **✅ Track Progress** - Mark tasks complete and watch momentum build
+1. **Landing Page** - Professional hero section with animated background  
+2. **Create Account** - Sign up with email/password in seconds  
+3. **Connect Calendar** - One-click Google OAuth integration  
+4. **Set Preferences** - Choose your ideal study times and available days  
+5. **Chat with AI** - "I have a 10-page research paper due next Friday"  
+6. **AI Planning** - Breaks down into research, outline, draft, and revision phases  
+7. **View Schedule** - Auto-scheduled study sessions appear in your calendar  
+8. **Drag to Adjust** - Reschedule sessions with visual calendar interface  
+9. **Track Progress** - Mark tasks complete and watch momentum build  
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 
@@ -201,7 +195,7 @@ You'll need **two terminal windows**:
 ```bash
 npm run dev
 ```
-🌐 Frontend: http://localhost:3000
+Frontend: http://localhost:3000
 
 **Terminal 2 - Backend (FastAPI)**
 ```bash
@@ -209,7 +203,7 @@ cd backend
 # Activate venv first (see step 3)
 python main.py
 ```
-🔧 Backend: http://localhost:8000
+Backend: http://localhost:8000
 
 ### First-Time Usage
 
@@ -225,7 +219,7 @@ python main.py
 
 ---
 
-## 🏗️ Tech Stack
+##  Tech Stack
 
 <div align="center">
 
@@ -319,7 +313,7 @@ AI-ATL-2025/
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Description |
 |----------|-------------|
@@ -329,28 +323,6 @@ AI-ATL-2025/
 | **[DEVELOPMENT.md](DEVELOPMENT.md)** | Development guide and patterns |
 | **[TODO.md](TODO.md)** | Prioritized task list |
 | **[DEMO.md](DEMO.md)** | Step-by-step demo presentation guide |
-
----
-
-## 🎯 Current Status
-
-**Phase:** Hackathon MVP - Demo Ready ✅
-
-### What's Working
-- ✅ User authentication (JWT + Google OAuth)
-- ✅ AI chatbot with Gemini (WebSocket-based)
-- ✅ Google Calendar integration (read/write events)
-- ✅ Interactive drag-and-drop calendar
-- ✅ User preferences system
-- ✅ Dark/light theme support
-- ✅ Professional landing page
-
-### In Progress
-- 🚧 Backend function executor (AI → database operations)
-- 🚧 Task management UI
-- 🚧 Auto-rescheduling logic
-
-See **[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)** for detailed breakdown.
 
 ---
 
@@ -383,84 +355,25 @@ Both frontend (`.env.local`) and backend (`backend/.env`) require configuration.
 
 ---
 
-## 🔒 Security Notes
-
-### Current Implementation (Demo Mode)
-- JWT tokens stored in localStorage
-- Passwords hashed with bcrypt (10 rounds)
-- Google OAuth follows standard flow
-- CORS configured for localhost only
-- WebSocket accepts user_id directly (⚠️ local demo only)
-
-### For Production Deployment
-If deploying publicly, implement:
-- ✅ HTTPS enforcement
-- ✅ Token rotation mechanism
-- ✅ Rate limiting middleware
-- ✅ HttpOnly cookies for JWT
-- ✅ WebSocket JWT verification
-- ✅ Input validation and sanitization
-- ✅ Security headers (CSP, HSTS, etc.)
-
-See **`backend/main.py:95-96`** for WebSocket auth notes.
-
----
-
-## 🤝 Contributing
-
-This is a hackathon project, but contributions and suggestions are welcome!
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Commit with clear messages (`git commit -m 'Add amazing feature'`)
-5. Push to your branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
-
-### Areas for Improvement
-
-- 🎨 **UI/UX** - Enhanced animations, mobile responsiveness
-- 🧠 **AI** - Smarter scheduling algorithms, better task decomposition
-- 📊 **Analytics** - Study time tracking, productivity insights
-- 🔔 **Notifications** - Reminders for upcoming study sessions
-- 📱 **Mobile App** - React Native companion app
-- 🔗 **Integrations** - Canvas, Blackboard, other LMS platforms
-
----
-
-## 📄 License
-
-**Proprietary** - AI ATL 2025 Hackathon Project
-
-This project was created for the AI ATL 2025 Hackathon. All rights reserved.
-
----
-
 ## 👥 Team & Credits
 
 **Built for:** AI ATL 2025 Hackathon
+By Ryan Brady, Elijah Borum, and Riley Pruitt (with the help of Claude Code)
 
 **Powered by:**
-- 🤖 [Google Gemini](https://ai.google.dev/) - AI language model
-- 🗓️ [Google Calendar API](https://developers.google.com/calendar) - Calendar integration
-- 🍃 [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) - Database hosting
-- ⚡ [Vercel](https://vercel.com/) - Deployment platform (Next.js)
+- [Google Gemini](https://ai.google.dev/) - AI language model
+- [Google Calendar API](https://developers.google.com/calendar) - Calendar integration
+- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) - Database hosting
+- [Vercel](https://vercel.com/) - Deployment platform (Next.js)
 
 **Special Thanks:**
 - AI ATL organizers for the opportunity
 - Google for Gemini API access
-- The open-source community for amazing tools
 
 ---
 
 <div align="center">
-
-### 🌟 Star this repo if you found it helpful!
-
-**Questions?** Check out our [Documentation](#-documentation) or open an issue.
-
-**Built with ❤️ and ☕ for the AI ATL 2025 Hackathon**
+Built with ❤️ and Moe's Tofu Burritos for the AI ATL 2025 Hackathon
 
 </div>
+
