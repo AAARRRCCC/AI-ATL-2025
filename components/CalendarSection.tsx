@@ -10,9 +10,10 @@ import { View } from "react-big-calendar";
 interface CalendarSectionProps {
   userId: string | null;
   isCalendarConnected: boolean;
+  onDataChange?: () => void;
 }
 
-export function CalendarSection({ userId, isCalendarConnected }: CalendarSectionProps) {
+export function CalendarSection({ userId, isCalendarConnected, onDataChange }: CalendarSectionProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +64,12 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
           console.log("   - Deleted subtasks:", syncData.deleted_subtasks);
           console.log("   - Updated assignments:", syncData.updated_assignments);
           console.log("   - Calendar events found:", syncData.calendar_events);
+
+          // Trigger count refresh if anything was deleted or updated
+          if (syncData.deleted_assignments > 0 || syncData.deleted_subtasks > 0 || syncData.updated_assignments > 0) {
+            console.log("🔄 Triggering widget count refresh");
+            onDataChange?.();
+          }
         } else {
           const errorText = await syncResponse.text();
           console.error("❌ SYNC FAILED:", syncResponse.status, errorText);

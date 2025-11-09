@@ -390,6 +390,7 @@ function DashboardContent() {
           <CalendarSection
             userId={user?._id || null}
             isCalendarConnected={!!user?.googleAccessToken}
+            onDataChange={fetchCounts}
           />
         </div>
       </main>
