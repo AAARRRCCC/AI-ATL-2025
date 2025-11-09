@@ -460,9 +460,12 @@ class FunctionExecutor:
                                         continue
 
                                 # Schedule the task!
+                                # Include assignment title in task title for consistent color assignment
+                                full_title = f"{assignment['title']} - {task['title']}"
+
                                 scheduled_tasks.append({
                                     "task_id": str(task["_id"]),
-                                    "title": task["title"],
+                                    "title": full_title,
                                     "scheduled_start": task_start.isoformat(),
                                     "scheduled_end": task_end.isoformat(),
                                     "duration_minutes": duration_minutes,
@@ -487,10 +490,11 @@ class FunctionExecutor:
                     fallback_date = start.replace(hour=10, minute=0, second=0, microsecond=0)
                     task_start = fallback_date
                     task_end = task_start + timedelta(minutes=duration_minutes)
+                    full_title = f"{assignment['title']} - {task['title']}"
 
                     scheduled_tasks.append({
                         "task_id": str(task["_id"]),
-                        "title": task["title"],
+                        "title": full_title,
                         "scheduled_start": task_start.isoformat(),
                         "scheduled_end": task_end.isoformat(),
                         "duration_minutes": duration_minutes,

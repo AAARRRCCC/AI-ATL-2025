@@ -330,6 +330,10 @@ export function CalendarSection({ userId, isCalendarConnected, onDataChange, onR
         const data = await response.json();
         throw new Error(data.error || "Failed to delete event");
       }
+
+      // After successful deletion, sync calendar to update database and widget counts
+      console.log("🗑️ Event deleted - triggering calendar sync to update database");
+      await fetchEvents(false);
     } catch (err: any) {
       console.error("Error deleting event:", err);
       setError(err.message || "Failed to delete event");
