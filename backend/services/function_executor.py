@@ -403,7 +403,7 @@ class FunctionExecutor:
                     })
 
                     # Create calendar event using atomic function (with conflict re-verification)
-                    calendar_result = await self.create_calendar_event_atomic(
+                    calendar_result = await create_calendar_event_atomic(
                         task_id=task_id,
                         title=f"{assignment.get('title', 'Assignment')}: {task_title}",
                         scheduled_start=proposed_start,
