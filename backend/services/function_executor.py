@@ -61,6 +61,11 @@ class FunctionExecutor:
 
             assignment_id = await self.db.create_assignment(user_id, assignment_data)
 
+            print(f"✅ Created assignment with ID: {assignment_id}")
+            print(f"   User ID: {user_id}")
+            print(f"   Title: {args['title']}")
+            print(f"   Status: not_started")
+
             return {
                 "success": True,
                 "assignment_id": assignment_id,
@@ -140,6 +145,11 @@ class FunctionExecutor:
                     assignment_id,
                     subtask_data
                 )
+                print(f"✅ Created subtask with ID: {task_id}")
+                print(f"   User ID: {self.user_id}")
+                print(f"   Assignment ID: {assignment_id}")
+                print(f"   Title: {subtask_data['title']}")
+                print(f"   Status: pending")
                 task_ids.append(task_id)
 
             # Calculate total hours
