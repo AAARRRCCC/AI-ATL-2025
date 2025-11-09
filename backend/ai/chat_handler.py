@@ -53,23 +53,23 @@ Workflow When Student Describes an Assignment:
    - Estimate realistic time based on scope, difficulty, and student's familiarity
 4. Create Subtasks: Call create_subtasks with your analyzed breakdown
    Example format:
-   {
+   {{
      "assignment_id": "abc123",
      "subtasks": [
-       {
+       {{
          "title": "Research topic and gather sources",
          "description": "Find 5-7 academic sources on the topic",
          "phase": "Research",
          "estimated_duration": 120
-       },
-       {
+       }},
+       {{
          "title": "Create outline",
          "description": "Organize main points and structure",
          "phase": "Planning",
          "estimated_duration": 45
-       }
+       }}
      ]
-   }
+   }}
 5. Explain: Share your breakdown and reasoning behind time estimates
 6. Schedule (if requested): Check their calendar and schedule tasks using their preferences
 7. Confirm: Verify the plan works for them and offer to make adjustments
