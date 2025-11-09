@@ -33,7 +33,7 @@ Students often struggle with:
 ### Our Solution
 
 SteadyStudy combines AI intelligence with calendar integration to:
--  **Intelligently decompose** assignments into phases (research, drafting, revision)
+-  **Intelligently decompose** assignments into phases
 -  **Auto-schedule** study sessions in your actual free time
 -  **Conversational interface** - just tell the AI what's due and when
 -  **Track progress** and maintain study momentum
@@ -97,14 +97,14 @@ Before you begin, ensure you have:
 
 ### Installation
 
-#### 1️⃣ Clone the Repository
+#### Clone the Repository
 
 ```bash
 git clone https://github.com/AAARRRCCC/AI-ATL-2025.git
 cd AI-ATL-2025
 ```
 
-#### 2️⃣ Frontend Setup
+#### Frontend Setup
 
 Install dependencies:
 ```bash
@@ -132,7 +132,7 @@ GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-#### 3️⃣ Backend Setup
+#### Backend Setup
 
 Navigate to backend directory:
 ```bash
@@ -177,7 +177,7 @@ FRONTEND_URL=http://localhost:3000
 ENVIRONMENT=development
 ```
 
-#### 4️⃣ Google Cloud Console Setup
+#### Google Cloud Console Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
@@ -259,7 +259,7 @@ Backend: http://localhost:8000
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 AI-ATL-2025/
@@ -326,7 +326,7 @@ AI-ATL-2025/
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Available Commands
 
@@ -355,7 +355,7 @@ Both frontend (`.env.local`) and backend (`backend/.env`) require configuration.
 
 ---
 
-## 👥 Team & Credits
+## Team & Credits
 
 **Built for:** AI ATL 2025 Hackathon
 By Ryan Brady, Elijah Borum, and Riley Pruitt (with the help of Claude Code)
@@ -376,4 +376,5 @@ By Ryan Brady, Elijah Borum, and Riley Pruitt (with the help of Claude Code)
 Built with ❤️ and Moe's Tofu Burritos for the AI ATL 2025 Hackathon
 
 </div>
+
 
