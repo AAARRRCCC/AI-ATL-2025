@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const db = await getDatabase();
     const assignmentsCollection = db.collection("assignments");
-    const subtasksCollection = db.collection("tasks"); // Subtasks table
+    const subtasksCollection = db.collection("subtasks"); // Python backend uses "subtasks" collection
 
     // Get date range for calendar events
     const startDate = new Date();
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       console.log(`  - Subtasks to keep: ${subtasksToKeep.length}`);
       console.log(`  - Subtasks to delete: ${subtasksToDelete.length}`);
 
-      // Delete subtasks that are not in calendar
+      // Step 1: Delete orphaned subtasks that don't have calendar events
       if (subtasksToDelete.length > 0) {
         const subtaskIds = subtasksToDelete.map(t => t._id);
         const result = await subtasksCollection.deleteMany({
@@ -115,22 +115,15 @@ export async function POST(request: NextRequest) {
         console.log(`  - Deleted ${result.deletedCount} orphaned subtasks`);
       }
 
-      // If no subtasks remain, delete the assignment
-      if (subtasksToKeep.length === 0) {
-        await assignmentsCollection.deleteOne({ _id: assignment._id });
-        deletedAssignments++;
-        console.log(`  - Deleted assignment "${assignment.title}" (no subtasks remaining)`);
-      }
-      // If some subtasks were deleted but some remain, update assignment metadata
-      else if (subtasksToDelete.length > 0) {
-        // Recalculate total estimated hours from remaining subtasks
-        const totalEstimatedMinutes = subtasksToKeep.reduce(
-          (sum, subtask) => sum + (subtask.estimated_duration || 0),
-          0
-        );
-        const totalEstimatedHours = totalEstimatedMinutes / 60;
+      // Step 2: Calculate remaining hours from kept subtasks
+      const totalEstimatedMinutes = subtasksToKeep.reduce(
+        (sum, subtask) => sum + (subtask.estimated_duration || 0),
+        0
+      );
+      const totalEstimatedHours = totalEstimatedMinutes / 60;
 
-        // Update assignment with new totals
+      // Step 3: Update assignment with new total hours
+      if (subtasksToDelete.length > 0 && subtasksToKeep.length > 0) {
         await assignmentsCollection.updateOne(
           { _id: assignment._id },
           {
@@ -142,6 +135,13 @@ export async function POST(request: NextRequest) {
         );
         updatedAssignments++;
         console.log(`  - Updated assignment "${assignment.title}": ${totalEstimatedHours.toFixed(1)} hours (${subtasksToKeep.length} subtasks remaining)`);
+      }
+
+      // Step 4: If hours = 0 (no subtasks remain), delete the assignment
+      if (totalEstimatedHours === 0 || subtasksToKeep.length === 0) {
+        await assignmentsCollection.deleteOne({ _id: assignment._id });
+        deletedAssignments++;
+        console.log(`  - Deleted assignment "${assignment.title}" (0 hours remaining, no subtasks left)`);
       }
     }
 
