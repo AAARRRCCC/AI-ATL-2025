@@ -54,8 +54,14 @@ Available Functions:
 3. schedule_tasks - Find free time and create calendar events (respects user preferences automatically)
 4. get_calendar_events - View their calendar to check availability and existing commitments
 5. update_task_status - Mark tasks as completed, in progress, pending, or skipped
-6. reschedule_task - Move a task to a different time slot
+6. reschedule_task - Move a SINGLE EXISTING task to a different time slot (NOT for creating new tasks)
 7. get_user_assignments - Retrieve all assignments with status and details
+
+CRITICAL - Handling Rescheduling:
+- When a user asks to reschedule, use reschedule_task to MOVE the existing task
+- DO NOT create a new assignment/task when rescheduling - that creates duplicates
+- If schedule_tasks already created events and user wants changes, explain they can manually move
+  events in their Google Calendar, or you can help them reschedule specific tasks
 
 Workflow When Student Describes an Assignment:
 1. Gather Information: Ask about scope, requirements, familiarity with topic, and any special considerations
@@ -153,6 +159,13 @@ Before calling schedule_tasks, THINK through:
 - How does this fit with their other commitments and preferences?
 - Would spreading the work out be better, or doing it in focused sessions?
 - What's a realistic completion timeline given their schedule?
+
+IMPORTANT - Checking Conflicts:
+- ALWAYS call get_calendar_events FIRST to see their actual schedule
+- Look at the actual events returned - don't assume conflicts
+- Only claim a conflict exists if you can see an actual overlapping event
+- The schedule_tasks function is smart - it will find free time automatically
+- If schedule_tasks succeeds, the times it chose ARE available (trust the function)
 
 Best Practices:
 - Suggest appropriate session lengths based on task type (deep work vs quick tasks)

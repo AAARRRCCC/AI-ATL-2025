@@ -11,9 +11,10 @@ import { TypingIndicator } from './TypingIndicator';
 interface ChatContainerProps {
   userId: string | null;
   onDataChange?: () => void;
+  onCalendarRefresh?: () => void;
 }
 
-export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
+export function ChatContainer({ userId, onDataChange, onCalendarRefresh }: ChatContainerProps) {
   const { messages, sendMessage, isConnected, isTyping, error, isInitializing } = useWebSocket(userId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -28,19 +29,22 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
 
   // Trigger data refresh when new messages with function calls are received
   useEffect(() => {
-    if (messages.length > 0 && onDataChange) {
+    if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.role === 'model' && lastMessage.function_calls && lastMessage.function_calls.length > 0) {
         // Check if any function calls were for creating/updating assignments or tasks
         const hasDataChanges = lastMessage.function_calls.some(
-          fc => ['create_assignment', 'break_down_assignment', 'schedule_tasks'].includes(fc.name)
+          fc => ['create_assignment', 'create_subtasks', 'schedule_tasks', 'update_task_status', 'reschedule_task'].includes(fc.name)
         );
         if (hasDataChanges) {
-          onDataChange();
+          // Refresh widget counts
+          onDataChange?.();
+          // Refresh calendar display
+          onCalendarRefresh?.();
         }
       }
     }
-  }, [messages, onDataChange]);
+  }, [messages, onDataChange, onCalendarRefresh]);
 
   const handleDebugMongoDB = async () => {
     const token = localStorage.getItem('token');

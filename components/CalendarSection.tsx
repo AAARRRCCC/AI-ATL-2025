@@ -11,9 +11,10 @@ interface CalendarSectionProps {
   userId: string | null;
   isCalendarConnected: boolean;
   onDataChange?: () => void;
+  onRefreshReady?: (refreshFn: () => void) => void;
 }
 
-export function CalendarSection({ userId, isCalendarConnected, onDataChange }: CalendarSectionProps) {
+export function CalendarSection({ userId, isCalendarConnected, onDataChange, onRefreshReady }: CalendarSectionProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +174,16 @@ export function CalendarSection({ userId, isCalendarConnected, onDataChange }: C
 
   const handleRefresh = () => {
     fetchEvents(true);
+    // Also trigger widget count refresh on manual refresh
+    onDataChange?.();
   };
+
+  // Expose refresh function to parent
+  useEffect(() => {
+    if (onRefreshReady) {
+      onRefreshReady(() => fetchEvents(true));
+    }
+  }, [onRefreshReady]);
 
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event);
@@ -465,33 +475,6 @@ export function CalendarSection({ userId, isCalendarConnected, onDataChange }: C
           </div>
         )}
       </div>
-
-      {/* Event Legend */}
-      {!loading && events.length > 0 && (
-        <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700 transition-all duration-200 hover:shadow-lg">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-            Event Types
-          </h3>
-          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 md:gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-blue-600 shadow-sm"></div>
-              <span className="text-xs text-gray-600 dark:text-gray-300">Research Phase</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-purple-600 shadow-sm"></div>
-              <span className="text-xs text-gray-600 dark:text-gray-300">Drafting Phase</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-green-600 shadow-sm"></div>
-              <span className="text-xs text-gray-600 dark:text-gray-300">Revision Phase</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-gray-400 shadow-sm"></div>
-              <span className="text-xs text-gray-600 dark:text-gray-300">Other Events</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style jsx>{`
         @keyframes fadeIn {

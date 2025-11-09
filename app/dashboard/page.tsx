@@ -24,6 +24,7 @@ function DashboardContent() {
   const [assignmentsCount, setAssignmentsCount] = useState<number | null>(null);
   const [sessionsCount, setSessionsCount] = useState<number | null>(null);
   const [countersLoading, setCountersLoading] = useState(true);
+  const [calendarRefresh, setCalendarRefresh] = useState<(() => void) | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -258,6 +259,7 @@ function DashboardContent() {
             <ChatContainer
               userId={user?._id || null}
               onDataChange={fetchCounts}
+              onCalendarRefresh={() => calendarRefresh?.()}
             />
           </motion.div>
 
@@ -391,6 +393,7 @@ function DashboardContent() {
             userId={user?._id || null}
             isCalendarConnected={!!user?.googleAccessToken}
             onDataChange={fetchCounts}
+            onRefreshReady={setCalendarRefresh}
           />
         </div>
       </main>
