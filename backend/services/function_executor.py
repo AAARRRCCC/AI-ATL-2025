@@ -305,6 +305,40 @@ class FunctionExecutor:
                 result["clamping_applied"] = clamping_applied
                 result["message"] += f" (Note: {len(clamping_applied)} task duration(s) adjusted to respect user's max task duration of {max_task_duration} minutes)"
 
+            # CRITICAL: Automatically schedule tasks to calendar after creation
+            # This ensures 100% of subtasks get calendar events
+            print(f"\n{'='*60}")
+            print(f"🔄 AUTO-SCHEDULING: Automatically scheduling {len(task_ids)} tasks to calendar")
+            print(f"{'='*60}\n")
+
+            try:
+                schedule_result = await self.schedule_tasks(
+                    user_id=self.user_id,
+                    assignment_id=assignment_id,
+                    start_date=None,  # Use defaults
+                    end_date=None,
+                    preferred_start_time=None,
+                    preferred_end_time=None,
+                    proposed_schedule=None
+                )
+
+                if schedule_result.get("success"):
+                    result["auto_scheduled"] = True
+                    result["scheduled_count"] = len(schedule_result.get("scheduled_tasks", []))
+                    result["message"] += f" and automatically scheduled {result['scheduled_count']} to calendar"
+                    print(f"✅ Auto-scheduling succeeded: {result['scheduled_count']} tasks scheduled")
+                else:
+                    result["auto_scheduled"] = False
+                    result["scheduling_error"] = schedule_result.get("error", "Unknown error")
+                    result["message"] += f" (Warning: Auto-scheduling failed - {result['scheduling_error']})"
+                    print(f"⚠️ Auto-scheduling failed: {result['scheduling_error']}")
+
+            except Exception as e:
+                result["auto_scheduled"] = False
+                result["scheduling_error"] = str(e)
+                result["message"] += f" (Warning: Auto-scheduling failed - {str(e)})"
+                print(f"❌ Auto-scheduling exception: {str(e)}")
+
             return result
 
         except Exception as e:
@@ -391,6 +425,17 @@ class FunctionExecutor:
                             "task_id": task_id,
                             "task_title": task_title,
                             "error": f"Invalid datetime format: {e}"
+                        })
+                        continue
+
+                    # CRITICAL: Prevent scheduling in the past
+                    now = datetime.now()
+                    if proposed_end <= now:
+                        print(f"❌ Cannot schedule '{task_title}' in the past (end time: {proposed_end}, current time: {now})")
+                        failed_tasks.append({
+                            "task_id": task_id,
+                            "task_title": task_title,
+                            "error": f"Cannot schedule in the past. Proposed end time ({proposed_end}) is before current time ({now})"
                         })
                         continue
 
@@ -2209,6 +2254,12 @@ class FunctionExecutor:
                     current_slot_start = window_start
                     while current_slot_start + timedelta(minutes=duration_minutes) <= window_end:
                         slot_end = current_slot_start + timedelta(minutes=duration_minutes)
+
+                        # CRITICAL: Skip past time slots - only schedule in the future
+                        now = datetime.now()
+                        if slot_end <= now:
+                            current_slot_start += timedelta(minutes=30)
+                            continue
 
                         # Check if slot is free (with buffer)
                         is_free = True
