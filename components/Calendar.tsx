@@ -138,75 +138,85 @@ export function Calendar({
     }, 100);
   }, []);
 
+  // Color palette for assignments - modern, user-friendly colors
+  const colorPalette = [
+    { bg: "rgba(99, 102, 241, 0.75)", border: "#6366f1", text: "#312e81" },      // Indigo
+    { bg: "rgba(168, 85, 247, 0.75)", border: "#a855f7", text: "#581c87" },      // Purple
+    { bg: "rgba(236, 72, 153, 0.75)", border: "#ec4899", text: "#831843" },      // Pink
+    { bg: "rgba(59, 130, 246, 0.75)", border: "#3b82f6", text: "#1e3a8a" },      // Blue
+    { bg: "rgba(14, 165, 233, 0.75)", border: "#0ea5e9", text: "#0c4a6e" },      // Sky
+    { bg: "rgba(34, 197, 94, 0.75)", border: "#22c55e", text: "#14532d" },       // Green
+    { bg: "rgba(234, 179, 8, 0.75)", border: "#eab308", text: "#713f12" },       // Yellow
+    { bg: "rgba(249, 115, 22, 0.75)", border: "#f97316", text: "#7c2d12" },      // Orange
+    { bg: "rgba(239, 68, 68, 0.75)", border: "#ef4444", text: "#7f1d1d" },       // Red
+    { bg: "rgba(20, 184, 166, 0.75)", border: "#14b8a6", text: "#134e4a" },      // Teal
+    { bg: "rgba(139, 92, 246, 0.75)", border: "#8b5cf6", text: "#4c1d95" },      // Violet
+    { bg: "rgba(251, 146, 60, 0.75)", border: "#fb923c", text: "#7c2d12" },      // Amber
+  ];
+
+  // Generate consistent color for an assignment based on event title
+  const getAssignmentColor = (eventTitle: string) => {
+    // Extract assignment title by removing [SteadyStudy] prefix
+    const cleanTitle = eventTitle.replace("[SteadyStudy]", "").trim();
+    // Use first part before " - " if it exists (removes subtask name)
+    const assignmentTitle = cleanTitle.split(" - ")[0];
+
+    // Simple hash function to get consistent index
+    let hash = 0;
+    for (let i = 0; i < assignmentTitle.length; i++) {
+      hash = assignmentTitle.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colorPalette.length;
+    return colorPalette[index];
+  };
+
   const eventStyleGetter = (event: CalendarEvent) => {
-    let backgroundColor = "rgba(59, 130, 246, 0.88)"; // Default blue with transparency
-    let borderColor = "#3b82f6";
-    let textColor = "#1e3a8a"; // Darker blue text for contrast
+    let backgroundColor: string;
+    let borderColor: string;
+    let textColor: string;
 
     if (event.isStudyAutopilot) {
-      // Color code by phase with vibrant, translucent colors
-      switch (event.phase) {
-        case "Research":
-          backgroundColor = "rgba(59, 130, 246, 0.88)"; // Vibrant Blue
-          borderColor = "#2563eb";
-          textColor = "#1e3a8a";
-          break;
-        case "Drafting":
-          backgroundColor = "rgba(168, 85, 247, 0.88)"; // Vibrant Purple
-          borderColor = "#a855f7";
-          textColor = "#581c87";
-          break;
-        case "Revision":
-          backgroundColor = "rgba(34, 197, 94, 0.88)"; // Vibrant Green
-          borderColor = "#16a34a";
-          textColor = "#14532d";
-          break;
-        case "Editing":
-          backgroundColor = "rgba(234, 179, 8, 0.88)"; // Vibrant Yellow
-          borderColor = "#ca8a04";
-          textColor = "#713f12";
-          break;
-        case "Final Review":
-          backgroundColor = "rgba(239, 68, 68, 0.88)"; // Vibrant Red
-          borderColor = "#dc2626";
-          textColor = "#7f1d1d";
-          break;
-        default:
-          backgroundColor = "rgba(99, 102, 241, 0.88)"; // Indigo
-          borderColor = "#6366f1";
-          textColor = "#312e81";
-      }
+      // Assign color based on assignment title for consistency
+      const color = getAssignmentColor(event.title);
+      backgroundColor = color.bg;
+      borderColor = color.border;
+      textColor = color.text;
 
       // Reduce opacity if completed
       if (event.status === "completed") {
         return {
           style: {
-            background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.88', '0.72')})`,
-            borderLeft: `4px solid ${borderColor}`,
-            borderRadius: "8px",
+            background: `linear-gradient(135deg, ${backgroundColor.replace('0.75', '0.5')}, ${backgroundColor.replace('0.75', '0.35')})`,
+            borderLeft: `3px solid ${borderColor}`,
+            borderRadius: "10px",
             color: textColor,
-            fontWeight: 600,
-            opacity: 0.7,
-            backdropFilter: "blur(6px)",
+            fontWeight: 500,
+            opacity: 0.65,
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.2)",
+            padding: "4px 8px",
           },
         };
       }
     } else {
       // Google Calendar events (not SteadyStudy) - subtle grey
-      backgroundColor = "rgba(148, 163, 184, 0.88)"; // Slate gray
+      backgroundColor = "rgba(148, 163, 184, 0.65)";
       borderColor = "#64748b";
       textColor = "#1e293b";
     }
 
+    // Modern, translucent card styling
     return {
       style: {
-        background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.88', '0.72')})`,
-        borderLeft: `4px solid ${borderColor}`,
-        borderRadius: "8px",
+        background: `linear-gradient(135deg, ${backgroundColor}, ${backgroundColor.replace('0.75', '0.6').replace('0.65', '0.5')})`,
+        borderLeft: `3px solid ${borderColor}`,
+        borderRadius: "10px",
         color: textColor,
-        fontWeight: 600,
-        backdropFilter: "blur(6px)",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+        fontWeight: 500,
+        backdropFilter: "blur(12px)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.2)",
+        padding: "4px 8px",
+        transition: "all 0.2s ease",
       },
     };
   };

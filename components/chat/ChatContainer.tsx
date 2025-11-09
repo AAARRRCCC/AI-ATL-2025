@@ -12,24 +12,19 @@ import catIcon from "./caticon.png";
 interface ChatContainerProps {
   userId: string | null;
   onDataChange?: () => void;
+  onCalendarRefresh?: () => void;
 }
 
 type PendingAttachment = ChatAttachment;
 
-export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
-  const {
-    messages,
-    sendMessage,
-    isConnected,
-    isTyping,
-    error,
-    isInitializing,
-  } = useWebSocket(userId);
+export function ChatContainer({ userId, onDataChange, onCalendarRefresh }: ChatContainerProps) {
+  const { messages, sendMessage, isConnected, isTyping, error, isInitializing } = useWebSocket(userId);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastProcessedMessageIndexRef = useRef<number>(-1);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
 
   // Smoothly keep the latest message in view by animating the chat panel upward
@@ -56,20 +51,34 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
   }, [messages, isTyping]);
 
   // Trigger data refresh when new messages with function calls are received
+  // Only process each message once to prevent duplicate refreshes
   useEffect(() => {
-    if (messages.length > 0 && onDataChange) {
-      const lastMessage = messages[messages.length - 1];
+    if (messages.length > 0) {
+      const lastMessageIndex = messages.length - 1;
+
+      // Skip if we've already processed this message
+      if (lastMessageIndex <= lastProcessedMessageIndexRef.current) {
+        return;
+      }
+
+      const lastMessage = messages[lastMessageIndex];
       if (lastMessage.role === 'model' && lastMessage.function_calls && lastMessage.function_calls.length > 0) {
         // Check if any function calls were for creating/updating assignments or tasks
         const hasDataChanges = lastMessage.function_calls.some(
-          fc => ['create_assignment', 'break_down_assignment', 'schedule_tasks'].includes(fc.name)
+          fc => ['create_assignment', 'create_subtasks', 'schedule_tasks', 'update_task_status', 'reschedule_task'].includes(fc.name)
         );
         if (hasDataChanges) {
-          onDataChange();
+          console.log('📊 AI made changes - refreshing widgets and calendar');
+          // Refresh widget counts
+          onDataChange?.();
+          // Refresh calendar display
+          onCalendarRefresh?.();
+          // Mark this message as processed
+          lastProcessedMessageIndexRef.current = lastMessageIndex;
         }
       }
     }
-  }, [messages, onDataChange]);
+  }, [messages, onDataChange, onCalendarRefresh]);
 
   const handleDebugMongoDB = async () => {
     const token = localStorage.getItem('token');
