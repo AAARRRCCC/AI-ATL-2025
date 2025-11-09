@@ -331,13 +331,17 @@ export function CalendarSection({ userId, isCalendarConnected, onDataChange, onR
         throw new Error(data.error || "Failed to delete event");
       }
 
-      // After successful deletion, sync calendar to update database and widget counts
-      console.log("🗑️ Event deleted - triggering calendar sync to update database");
-      await fetchEvents(false);
+      const result = await response.json();
+
+      // If a task or assignment was deleted from database, update counts
+      if (result.deletedTask || result.deletedAssignment) {
+        console.log("🔄 Database updated - refreshing widget counts");
+        onDataChange?.();
+      }
     } catch (err: any) {
       console.error("Error deleting event:", err);
       setError(err.message || "Failed to delete event");
-      // Revert on error
+      // Revert optimistic update on error
       await fetchEvents(false);
     }
   };
