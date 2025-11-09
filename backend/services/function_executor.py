@@ -145,7 +145,9 @@ class FunctionExecutor:
         user_id: str,
         assignment_id: str,
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        end_date: Optional[str] = None,
+        preferred_start_time: Optional[str] = None,
+        preferred_end_time: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Schedule tasks for an assignment using user preferences.
@@ -155,6 +157,8 @@ class FunctionExecutor:
             assignment_id: Assignment ID
             start_date: Start date for scheduling
             end_date: End date for scheduling (defaults to assignment due date)
+            preferred_start_time: Optional specific start time (HH:MM format) when user requests exact scheduling
+            preferred_end_time: Optional specific end time (HH:MM format) when user requests exact scheduling
 
         Returns:
             Dict with scheduled tasks
@@ -175,6 +179,14 @@ class FunctionExecutor:
             deadline_buffer = study_settings.get("assignmentDeadlineBuffer", 2)
             subject_strengths = study_settings.get("subjectStrengths", [])
             default_work_duration = study_settings.get("defaultWorkDuration", 50)
+
+            # If user specified exact times, override preferences with their specific time window
+            if preferred_start_time and preferred_end_time:
+                print(f"\n🎯 USER SPECIFIED EXACT TIMES: {preferred_start_time} to {preferred_end_time}")
+                preferred_times = [{
+                    "start": preferred_start_time,
+                    "end": preferred_end_time
+                }]
 
             # Get assignment subject and check if it needs more time
             assignment_subject = assignment.get("subject", "")
