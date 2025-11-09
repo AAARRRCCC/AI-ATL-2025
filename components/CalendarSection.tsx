@@ -120,6 +120,19 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
     };
 
     fetchPreferences();
+
+    // Re-fetch preferences when user returns to the page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPreferences();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleRefresh = () => {
