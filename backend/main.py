@@ -5,12 +5,14 @@ FastAPI application with WebSocket support for AI chat and REST endpoints
 for assignment and calendar management.
 """
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
-import asyncio
 from datetime import datetime
+from pypdf import PdfReader
+import io
+import asyncio
 
 from ai.chat_handler import ChatHandler
 from database.connection import Database
@@ -182,6 +184,112 @@ async def websocket_chat(websocket: WebSocket):
             })
         except:
             pass
+
+
+@app.post("/chat/upload-pdf")
+async def upload_assignment_pdf(
+    file: UploadFile = File(...),
+    user_id: str = Form(...),
+    token: str = Form(None)
+):
+    """
+    Accept assignment PDFs, extract text, and run them through the chat handler.
+    """
+    if not user_id:
+        raise HTTPException(status_code=400, detail="user_id is required")
+
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF uploads are supported")
+
+    file_bytes = await file.read()
+    max_file_size = int(os.getenv("PDF_MAX_BYTES", 10 * 1024 * 1024))  # 10 MB default
+    if len(file_bytes) > max_file_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File is too large. Maximum size is {max_file_size // (1024 * 1024)} MB"
+        )
+
+    try:
+        reader = PdfReader(io.BytesIO(file_bytes))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Failed to read PDF: {str(exc)}")
+
+    extracted_text = []
+    for page in reader.pages:
+        page_text = page.extract_text() or ""
+        extracted_text.append(page_text.strip())
+
+    full_text = "\n\n".join(filter(None, extracted_text)).strip()
+
+    if not full_text:
+        raise HTTPException(status_code=400, detail="Unable to extract text from PDF")
+
+    char_limit = int(os.getenv("PDF_TEXT_CHAR_LIMIT", 6000))
+    truncated_text = full_text[:char_limit]
+    if len(full_text) > char_limit:
+        truncated_text += "\n\n[Text truncated for processing]"
+
+    pages = len(reader.pages)
+    size_kb = round(len(file_bytes) / 1024, 1)
+
+    # Build the user message that will be sent to Gemini
+    user_message = (
+        f"I uploaded an assignment PDF titled '{file.filename}'. "
+        "Please read the instructions below, identify all requirements, "
+        "and break the assignment into tasks with estimates. "
+        "Create a suggested plan aligned with my study preferences.\n\n"
+        f"--- Assignment Instructions ---\n{truncated_text}\n--- End of Instructions ---"
+    )
+
+    preview_limit = int(os.getenv("PDF_PREVIEW_CHAR_LIMIT", 350))
+    preview_text = truncated_text[:preview_limit].strip()
+    if len(truncated_text) > preview_limit:
+        preview_text += "…"
+
+    attachments = [{
+        "type": "pdf",
+        "filename": file.filename,
+        "pages": pages,
+        "size_kb": size_kb,
+        "preview": preview_text
+    }]
+
+    history = await db.get_chat_history(user_id, limit=20)
+    function_executor = FunctionExecutor(db, user_id, token)
+
+    timestamp = datetime.utcnow().isoformat()
+    await db.save_message(user_id, "user", user_message, attachments=attachments)
+
+    response = await chat_handler.process_message(
+        user_message,
+        user_id,
+        history,
+        function_executor
+    )
+
+    assistant_timestamp = datetime.utcnow().isoformat()
+    await db.save_message(
+        user_id,
+        "model",
+        response["message"],
+        function_calls=response["function_calls"]
+    )
+
+    return {
+        "success": True,
+        "user_message": {
+            "role": "user",
+            "content": user_message,
+            "timestamp": timestamp,
+            "attachments": attachments
+        },
+        "assistant_message": {
+            "role": "model",
+            "content": response["message"],
+            "timestamp": assistant_timestamp,
+            "function_calls": response["function_calls"]
+        }
+    }
 
 
 # Import and include routers (to be created)

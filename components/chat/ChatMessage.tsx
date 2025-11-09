@@ -1,6 +1,7 @@
 'use client';
 
-import { Bot, User } from 'lucide-react';
+import { useState } from 'react';
+import { Bot, FileText, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -19,6 +20,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
     hour: 'numeric',
     minute: '2-digit',
   });
+  const [showFullText, setShowFullText] = useState(false);
+  const hasAttachments = (message.attachments?.length || 0) > 0;
+  const shouldTruncate = hasAttachments && message.content.length > 800 && isUser;
+  const displayedContent = shouldTruncate && !showFullText
+    ? `${message.content.slice(0, 800)}…`
+    : message.content;
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -46,7 +53,17 @@ export function ChatMessage({ message }: ChatMessageProps) {
         >
           {isUser ? (
             // User messages: plain text
-            <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+            <>
+              <p className="text-sm whitespace-pre-wrap break-words">{displayedContent}</p>
+              {shouldTruncate && (
+                <button
+                  onClick={() => setShowFullText((prev) => !prev)}
+                  className="mt-2 text-xs font-medium underline text-white/90"
+                >
+                  {showFullText ? 'Hide extracted text' : 'Show full extracted text'}
+                </button>
+              )}
+            </>
           ) : (
             // AI messages: render as markdown
             <div className="markdown-content text-sm">
@@ -127,6 +144,38 @@ export function ChatMessage({ message }: ChatMessageProps) {
             </div>
           )}
         </div>
+
+        {/* Attachment Previews */}
+        {hasAttachments && (
+          <div className="mt-3 w-full space-y-2">
+            {message.attachments!.map((attachment, idx) => (
+              <div
+                key={`${attachment.filename}-${idx}`}
+                className="w-full rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50/70 dark:bg-gray-900/40 px-3 py-2 text-xs text-gray-700 dark:text-gray-300"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-blue-500 dark:text-blue-300" />
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">
+                        {attachment.filename || 'Assignment.pdf'}
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        {attachment.pages ? `${attachment.pages} pages` : 'PDF'}
+                        {attachment.size_kb ? ` · ${attachment.size_kb} KB` : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {attachment.preview && (
+                  <p className="mt-2 whitespace-pre-wrap text-[11px] text-gray-600 dark:text-gray-300">
+                    {attachment.preview}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Function Calls Indicator */}
         {message.function_calls && message.function_calls.length > 0 && (

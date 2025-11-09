@@ -2,6 +2,14 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+export interface ChatAttachment {
+  type: 'pdf';
+  filename: string;
+  pages?: number;
+  size_kb?: number;
+  preview?: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   content: string;
@@ -11,6 +19,7 @@ export interface ChatMessage {
     input: Record<string, any>;
     result: any;
   }>;
+  attachments?: ChatAttachment[];
 }
 
 interface UseWebSocketReturn {
@@ -20,6 +29,7 @@ interface UseWebSocketReturn {
   isTyping: boolean;
   error: string | null;
   isInitializing: boolean;
+  appendMessages: (newMessages: ChatMessage[]) => void;
 }
 
 export function useWebSocket(userId: string | null): UseWebSocketReturn {
@@ -182,6 +192,11 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]); // Only reconnect when userId changes, not when connect function changes
 
+  const appendMessages = useCallback((newMessages: ChatMessage[]) => {
+    if (!newMessages || newMessages.length === 0) return;
+    setMessages((prev) => [...prev, ...newMessages]);
+  }, []);
+
   return {
     messages,
     sendMessage,
@@ -189,5 +204,6 @@ export function useWebSocket(userId: string | null): UseWebSocketReturn {
     isTyping,
     error,
     isInitializing,
+    appendMessages,
   };
 }

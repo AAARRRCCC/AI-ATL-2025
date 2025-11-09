@@ -1,21 +1,26 @@
 'use client';
 
-import { useState, KeyboardEvent, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { useState, KeyboardEvent, useRef, useEffect, ChangeEvent } from 'react';
+import { Loader2, Send, Upload } from 'lucide-react';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
+  onUploadPdf?: (file: File) => void;
   disabled?: boolean;
   placeholder?: string;
+  isUploading?: boolean;
 }
 
 export function ChatInput({
   onSend,
+  onUploadPdf,
   disabled = false,
   placeholder = 'Type a message...',
+  isUploading = false,
 }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus on mount
   useEffect(() => {
@@ -52,6 +57,17 @@ export function ChatInput({
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onUploadPdf) {
+      onUploadPdf(file);
+    }
+    // Reset input so the same file can be re-uploaded if needed
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const characterCount = message.length;
   const maxChars = 2000;
   const isNearLimit = characterCount > maxChars * 0.8;
@@ -59,6 +75,27 @@ export function ChatInput({
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
       <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isUploading}
+            className="flex-shrink-0 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+            title="Upload assignment PDF"
+          >
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4" />
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            data-chat-upload
+            onChange={handleFileChange}
+          />
           <textarea
             ref={textareaRef}
             value={message}
@@ -91,7 +128,7 @@ export function ChatInput({
 
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
         Press <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Enter</kbd> to send,{' '}
-        <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Shift+Enter</kbd> for new line
+        <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100">Shift+Enter</kbd> for new line · Upload PDFs with the arrow icon
       </p>
     </div>
   );
