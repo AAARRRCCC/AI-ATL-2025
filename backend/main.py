@@ -12,6 +12,7 @@ import os
 from datetime import datetime
 from pypdf import PdfReader
 import io
+import asyncio
 
 from ai.chat_handler import ChatHandler
 from database.connection import Database
@@ -134,13 +135,23 @@ async def websocket_chat(websocket: WebSocket):
                 "message": "AI is thinking..."
             })
 
-            # Process with Gemini AI
-            response = await chat_handler.process_message(
-                user_message,
-                user_id,
-                history,
-                function_executor
-            )
+            # Process with Gemini AI with 2-minute timeout
+            try:
+                response = await asyncio.wait_for(
+                    chat_handler.process_message(
+                        user_message,
+                        user_id,
+                        history,
+                        function_executor
+                    ),
+                    timeout=120.0  # 2 minutes
+                )
+            except asyncio.TimeoutError:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "AI response timed out after 2 minutes. Please try a simpler request or break it into smaller parts."
+                })
+                continue
 
             # Save AI response to database
             await db.save_message(
