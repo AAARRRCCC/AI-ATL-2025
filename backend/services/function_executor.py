@@ -196,11 +196,12 @@ class FunctionExecutor:
             print(f"   User ID: {user_id}")
             print(f"   Title: {args['title']}")
             print(f"   Status: not_started")
+            print(f"   ⚠️  NEXT STEP REQUIRED: create_subtasks must be called to break down this assignment")
 
             return {
                 "success": True,
                 "assignment_id": assignment_id,
-                "message": f"Created assignment: {args['title']}"
+                "message": f"Created assignment: {args['title']}. CRITICAL: You must now call create_subtasks to break this down into tasks and schedule them to the calendar - the assignment is incomplete without subtasks and calendar events."
             }
 
         except Exception as e:
