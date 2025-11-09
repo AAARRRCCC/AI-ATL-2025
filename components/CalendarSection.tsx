@@ -21,6 +21,8 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showAddEventModal, setShowAddEventModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
+  const [calendarViewStart, setCalendarViewStart] = useState('08:00');
+  const [calendarViewEnd, setCalendarViewEnd] = useState('23:59');
 
   const fetchEvents = useCallback(async (showRefreshState = false) => {
     if (!userId || !isCalendarConnected) {
@@ -92,6 +94,33 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Fetch preferences for calendar view hours
+  useEffect(() => {
+    const fetchPreferences = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch('/api/preferences', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCalendarViewStart(data.studySettings?.calendarViewStart || '08:00');
+          setCalendarViewEnd(data.studySettings?.calendarViewEnd || '23:59');
+        }
+      } catch (error) {
+        console.error('Error fetching preferences:', error);
+        // Use defaults if fetch fails
+      }
+    };
+
+    fetchPreferences();
+  }, []);
 
   const handleRefresh = () => {
     fetchEvents(true);
@@ -381,6 +410,8 @@ export function CalendarSection({ userId, isCalendarConnected }: CalendarSection
               onEventMove={handleEventMove}
               onEventResize={handleEventResize}
               onSelectSlot={handleSelectSlot}
+              viewStart={calendarViewStart}
+              viewEnd={calendarViewEnd}
             />
           </div>
         )}

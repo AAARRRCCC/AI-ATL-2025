@@ -43,6 +43,8 @@ interface CalendarProps {
   onEventResize?: (eventId: string, start: Date, end: Date) => void;
   onEventClick?: (event: CalendarEvent) => void;
   onSelectSlot?: (start: Date, end: Date) => void;
+  viewStart?: string;
+  viewEnd?: string;
 }
 
 export function Calendar({
@@ -51,6 +53,8 @@ export function Calendar({
   onEventResize,
   onEventClick,
   onSelectSlot,
+  viewStart = '08:00',
+  viewEnd = '23:59',
 }: CalendarProps) {
   const [view, setView] = useState<View | "agenda">("week");
   const [date, setDate] = useState(new Date());
@@ -227,16 +231,26 @@ export function Calendar({
 
   // Custom toolbar component
   const CustomToolbar = ({ label, onNavigate, onView: onViewChange }: any) => {
+    const handleNavigation = (action: "TODAY" | "PREV" | "NEXT") => {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        onNavigate(action);
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 100);
+      }, 100);
+    };
+
     return (
       <div className="rbc-toolbar">
         <span className="rbc-btn-group">
-          <button type="button" onClick={() => onNavigate("TODAY")}>
+          <button type="button" onClick={() => handleNavigation("TODAY")}>
             Today
           </button>
-          <button type="button" onClick={() => onNavigate("PREV")}>
+          <button type="button" onClick={() => handleNavigation("PREV")}>
             Back
           </button>
-          <button type="button" onClick={() => onNavigate("NEXT")}>
+          <button type="button" onClick={() => handleNavigation("NEXT")}>
             Next
           </button>
         </span>
@@ -924,6 +938,8 @@ export function Calendar({
           timeslots={2}
           draggableAccessor={() => true}
           resizableAccessor={() => true}
+          min={new Date(1970, 0, 1, parseInt(viewStart.split(':')[0]), parseInt(viewStart.split(':')[1]))}
+          max={new Date(1970, 0, 1, parseInt(viewEnd.split(':')[0]), parseInt(viewEnd.split(':')[1]))}
         />
       </DndProvider>
     </div>

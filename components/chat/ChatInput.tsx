@@ -84,9 +84,8 @@ export function ChatInput({
         <button
           onClick={handleSend}
           disabled={disabled || !message.trim()}
-          className="flex-shrink-0 p-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex-shrink-0 self-stretch px-4 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
           title="Send message (Enter)"
-          padding-top="0px"
         >
           <Send className="h-5 w-5" />
         </button>
