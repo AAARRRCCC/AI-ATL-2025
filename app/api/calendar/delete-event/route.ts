@@ -79,15 +79,20 @@ export async function DELETE(request: NextRequest) {
 
         // Check if assignment has any remaining tasks
         if (assignmentId) {
+          // Note: assignment_id is stored as a string in the database, not ObjectId
           const remainingTasks = await tasksCollection.countDocuments({
-            assignment_id: new ObjectId(assignmentId),
+            assignment_id: assignmentId,
           });
+
+          console.log(`📊 Remaining tasks for assignment ${assignmentId}: ${remainingTasks}`);
 
           // If no tasks left, delete the assignment
           if (remainingTasks === 0) {
             await assignmentsCollection.deleteOne({ _id: new ObjectId(assignmentId) });
             console.log(`🗑️ Deleted assignment ${assignmentId} (no tasks remaining)`);
             deletedAssignment = true;
+          } else {
+            console.log(`✅ Kept assignment ${assignmentId} (${remainingTasks} tasks remaining)`);
           }
         }
       }

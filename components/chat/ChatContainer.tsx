@@ -284,18 +284,21 @@ export function ChatContainer({ userId, onDataChange, onCalendarRefresh }: ChatC
             </div>
           )}
 
-          <button
-            onClick={handleClearChat}
-            disabled={isClearing}
-            className="flex items-center gap-2 rounded-md border border-red-200 dark:border-red-800 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
-          >
-            {isClearing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            <span>Clear history</span>
-          </button>
+          {/* Clear history button - Hidden but functionality preserved */}
+          {false && (
+            <button
+              onClick={handleClearChat}
+              disabled={isClearing}
+              className="flex items-center gap-2 rounded-md border border-red-200 dark:border-red-800 px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+            >
+              {isClearing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              <span>Clear history</span>
+            </button>
+          )}
         </div>
       </div>
 
