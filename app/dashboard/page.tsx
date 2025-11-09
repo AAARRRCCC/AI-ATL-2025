@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, useState, Suspense, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GraduationCap, Settings } from "lucide-react";
 import toast from "react-hot-toast";
@@ -24,6 +24,7 @@ function DashboardContent() {
   const [assignmentsCount, setAssignmentsCount] = useState<number | null>(null);
   const [sessionsCount, setSessionsCount] = useState<number | null>(null);
   const [countersLoading, setCountersLoading] = useState(true);
+  const calendarRefreshRef = useRef<(() => void) | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -78,10 +79,19 @@ function DashboardContent() {
     }
   };
 
+  const isFetchingCountsRef = useRef(false);
+
   const fetchCounts = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    // Prevent concurrent calls - if already fetching, skip
+    if (isFetchingCountsRef.current) {
+      console.log("⏭️ Skipping fetchCounts - already in progress");
+      return;
+    }
+
+    isFetchingCountsRef.current = true;
     setCountersLoading(true);
     try {
       const [assignmentsRes, sessionsRes] = await Promise.all([
@@ -117,7 +127,18 @@ function DashboardContent() {
       setSessionsCount(0);
     } finally {
       setCountersLoading(false);
+      isFetchingCountsRef.current = false;
     }
+  }, []);
+
+  // Stable callback for calendar refresh registration that doesn't cause re-renders
+  const handleCalendarRefreshReady = useCallback((refreshFn: () => void) => {
+    calendarRefreshRef.current = refreshFn;
+  }, []);
+
+  // Stable callback to trigger calendar refresh
+  const triggerCalendarRefresh = useCallback(() => {
+    calendarRefreshRef.current?.();
   }, []);
 
   // Fetch counters when component mounts and user is authenticated
@@ -258,6 +279,7 @@ function DashboardContent() {
             <ChatContainer
               userId={user?._id || null}
               onDataChange={fetchCounts}
+              onCalendarRefresh={triggerCalendarRefresh}
             />
           </motion.div>
 
@@ -390,6 +412,8 @@ function DashboardContent() {
           <CalendarSection
             userId={user?._id || null}
             isCalendarConnected={!!user?.googleAccessToken}
+            onDataChange={fetchCounts}
+            onRefreshReady={handleCalendarRefreshReady}
           />
         </div>
       </main>
