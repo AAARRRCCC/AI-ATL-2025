@@ -595,10 +595,21 @@ The schedule_tasks function automatically:
 ✓ Honors user preferences (days, times, productivity patterns)
 ✓ Avoids all existing calendar commitments (zero overlap)
 
+🚨 CRITICAL SCHEDULING RULE - NEVER CREATE OVERLAPS:
+When you call schedule_tasks with preferred_start_time and preferred_end_time, the function MUST:
+1. Check if those exact times conflict with calendar events or existing tasks
+2. If times ARE FREE → schedule at requested times
+3. If times CONFLICT → automatically find the next available free slot
+4. NEVER force a schedule that overlaps - always search for alternative times
+
+If user says "schedule from 3-4pm" and 3-4pm is busy, the function will find the next free hour.
+This is AUTOMATIC - you don't need to manually check, the function does conflict detection.
+
 Before calling schedule_tasks, ALWAYS:
 1. Call get_calendar_events to see their commitments
 2. Think through how work fits around those events
 3. Explain which events you saw and how you'll work around them
+4. Trust that schedule_tasks will find free time slots (it has conflict detection built-in)
 
 ═══════════════════════════════════════════════════════════════════════════════
 BEST PRACTICES
@@ -953,7 +964,9 @@ Be helpful, realistic, adaptive, and focused on sustainable academic success.
                     user_id,
                     args["assignment_id"],
                     args.get("start_date"),
-                    args.get("end_date")
+                    args.get("end_date"),
+                    args.get("preferred_start_time"),
+                    args.get("preferred_end_time")
                 )
 
             elif name == "update_task_status":

@@ -252,22 +252,39 @@ class FunctionExecutor:
                 pattern_range = time_ranges.get(productivity_pattern, time_ranges["midday"])
                 available_time_blocks = [pattern_range]
 
+            # Detect user's timezone offset from their calendar events (if available)
+            user_tz_offset = None  # Will be set to timedelta when detected
+
             def normalize_datetime(value: Optional[Any]) -> Optional[datetime]:
+                nonlocal user_tz_offset
                 if value is None:
                     return None
                 dt = value
                 if isinstance(value, str):
-                    dt = parser.parse(value)
+                    try:
+                        dt = parser.parse(value)
+                    except Exception as e:
+                        print(f"ERROR: Failed to parse datetime '{value}': {e}")
+                        return None
                 if isinstance(dt, datetime):
                     if dt.tzinfo:
+                        # Detect user's timezone from first event with timezone info
+                        if user_tz_offset is None and dt.tzinfo is not None:
+                            utc_dt = dt.astimezone(timezone.utc)
+                            user_tz_offset = dt.utcoffset()
+                            print(f"DEBUG: Detected user timezone offset: {user_tz_offset} (from event timestamp)")
                         return dt.astimezone(timezone.utc).replace(tzinfo=None)
                     return dt
                 return None
 
-            # Calculate start date (today or provided)
-            start = datetime.now() if not start_date else normalize_datetime(start_date)
+            # Calculate start date (today or provided) - ALWAYS use UTC for consistency with calendar events
+            if start_date:
+                start = normalize_datetime(start_date)
+            else:
+                # Get current time in UTC to match calendar event timezone conversion
+                start = datetime.now(timezone.utc).replace(tzinfo=None)
             if start is None:
-                start = datetime.now()
+                start = datetime.now(timezone.utc).replace(tzinfo=None)
 
             # Calculate end date (assignment due date minus buffer)
             due_date_value = None
@@ -288,10 +305,13 @@ class FunctionExecutor:
                 start_dt = normalize_datetime(start_dt_raw)
                 end_dt = normalize_datetime(end_dt_raw)
                 if not start_dt or not end_dt:
+                    print(f"WARNING: Skipping invalid busy interval - start: {start_dt_raw}, end: {end_dt_raw}")
                     return
                 if end_dt <= start_dt:
+                    print(f"WARNING: Skipping invalid busy interval - end <= start: {start_dt} to {end_dt}")
                     return
                 busy_intervals.append((start_dt, end_dt))
+                print(f"DEBUG: Added busy interval: {start_dt.strftime('%Y-%m-%d %H:%M')} to {end_dt.strftime('%Y-%m-%d %H:%M')}")
 
             # Existing calendar events
             calendar_window_end = (due_date_value or target_completion) + timedelta(days=1)
@@ -302,18 +322,30 @@ class FunctionExecutor:
                     calendar_window_end.isoformat()
                 )
                 if events_response.get("success"):
-                    for event in events_response.get("events", []):
-                        add_busy_interval(
-                            event.get("start") or event.get("start_time"),
-                            event.get("end") or event.get("end_time")
-                        )
+                    events_list = events_response.get("events", [])
+                    print(f"DEBUG: Processing {len(events_list)} calendar events from Google Calendar")
+                    for event in events_list:
+                        event_title = event.get("title", "Untitled")
+                        event_start = event.get("start") or event.get("start_time")
+                        event_end = event.get("end") or event.get("end_time")
+                        print(f"DEBUG: Calendar event: '{event_title}' - {event_start} to {event_end}")
+                        add_busy_interval(event_start, event_end)
 
-            # Existing scheduled tasks
-            for task in tasks:
-                add_busy_interval(
-                    task.get("scheduled_start"),
-                    task.get("scheduled_end")
-                )
+            # Existing scheduled tasks from ALL assignments (not just this one)
+            # CRITICAL: Load all previously scheduled tasks from database
+            all_scheduled_tasks = await self.db.db.subtasks.find({
+                "user_id": user_id,
+                "scheduled_start": {"$exists": True, "$ne": None},
+                "scheduled_end": {"$exists": True, "$ne": None}
+            }).to_list(length=1000)
+
+            print(f"DEBUG: Found {len(all_scheduled_tasks)} previously scheduled tasks across all assignments")
+            for scheduled_task in all_scheduled_tasks:
+                task_start = scheduled_task.get("scheduled_start")
+                task_end = scheduled_task.get("scheduled_end")
+                task_title = scheduled_task.get("title", "Unknown")
+                print(f"DEBUG: Previously scheduled task: '{task_title}' - {task_start} to {task_end}")
+                add_busy_interval(task_start, task_end)
 
             # ═══════════════════════════════════════════════════════════════
             # SMART SCHEDULING ALGORITHM
@@ -446,11 +478,26 @@ class FunctionExecutor:
 
                         start_time_str = time_block["start"]
                         hour, minute = map(int, start_time_str.split(":"))
-                        block_start = current_date.replace(hour=hour, minute=minute)
+
+                        # User's preferred times are in their LOCAL timezone, convert to UTC
+                        if user_tz_offset is not None:
+                            # Create time in user's local timezone, then convert to UTC
+                            local_time = current_date.replace(hour=hour, minute=minute)
+                            block_start = local_time - user_tz_offset
+                            print(f"DEBUG: Converted {hour}:{minute:02d} local to {block_start.strftime('%H:%M')} UTC (offset: {user_tz_offset})")
+                        else:
+                            # No timezone info available, treat as UTC (fallback)
+                            block_start = current_date.replace(hour=hour, minute=minute)
+                            print(f"WARNING: No timezone detected, treating {hour}:{minute:02d} as UTC")
 
                         block_end_str = time_block["end"]
                         block_hour, block_minute = map(int, block_end_str.split(":"))
-                        block_end = current_date.replace(hour=block_hour, minute=block_minute)
+
+                        if user_tz_offset is not None:
+                            local_time_end = current_date.replace(hour=block_hour, minute=block_minute)
+                            block_end = local_time_end - user_tz_offset
+                        else:
+                            block_end = current_date.replace(hour=block_hour, minute=block_minute)
 
                         # Prioritize productivity hours for intense work
                         # (already using preferred times, so this is handled)
@@ -476,16 +523,25 @@ class FunctionExecutor:
                                 scheduled_tasks.append({
                                     "task_id": str(task["_id"]),
                                     "title": full_title,
-                                    "scheduled_start": task_start.isoformat(),
-                                    "scheduled_end": task_end.isoformat(),
+                                    "scheduled_start": task_start.isoformat() + "Z",  # Add Z to indicate UTC
+                                    "scheduled_end": task_end.isoformat() + "Z",  # Add Z to indicate UTC
                                     "duration_minutes": duration_minutes,
                                     "description": task.get("description", ""),
                                     "intensity": intensity
                                 })
 
-                                # Add to busy intervals with buffer
-                                buffer_end = task_end + timedelta(minutes=BUFFER_MINUTES)
-                                add_busy_interval(task_start, buffer_end)
+                                # CRITICAL: Update database immediately with scheduled times
+                                await self.db.update_task(
+                                    str(task["_id"]),
+                                    {
+                                        "scheduled_start": task_start,
+                                        "scheduled_end": task_end
+                                    }
+                                )
+                                print(f"DEBUG: Updated database for task {task['title']}: {task_start.strftime('%Y-%m-%d %H:%M')} to {task_end.strftime('%Y-%m-%d %H:%M')}")
+
+                                # Add to busy intervals (NO buffer - is_slot_free handles it)
+                                add_busy_interval(task_start, task_end)
 
                                 last_scheduled_intensity = intensity
                                 last_scheduled_end = task_end
@@ -494,24 +550,64 @@ class FunctionExecutor:
 
                             candidate_start += timedelta(minutes=slot_increment)
 
-                # Fallback if couldn't schedule
+                # Fallback if couldn't schedule in preferred times
                 if not scheduled:
-                    # Try to find ANY available slot without buffer constraints
-                    fallback_date = start.replace(hour=10, minute=0, second=0, microsecond=0)
-                    task_start = fallback_date
-                    task_end = task_start + timedelta(minutes=duration_minutes)
+                    print(f"WARNING: Could not schedule '{task['title']}' in preferred times, searching for ANY free slot...")
+
+                    # Try to find ANY available slot across extended date range
+                    extended_days = 30  # Look up to 30 days ahead
+                    fallback_found = False
+
+                    for day_offset in range(extended_days):
+                        if fallback_found:
+                            break
+
+                        fallback_date = (start + timedelta(days=day_offset)).replace(hour=9, minute=0, second=0, microsecond=0)
+
+                        # Try every hour of the day
+                        for hour_offset in range(14):  # 9am to 11pm
+                            candidate_start = fallback_date + timedelta(hours=hour_offset)
+                            candidate_end = candidate_start + timedelta(minutes=duration_minutes)
+
+                            # Check if this slot is actually free (without buffer for fallback)
+                            if is_slot_free(candidate_start, candidate_end, with_buffer=False):
+                                task_start = candidate_start
+                                task_end = candidate_end
+                                fallback_found = True
+                                print(f"SUCCESS: Found fallback slot at {task_start.strftime('%Y-%m-%d %H:%M')}")
+                                break
+
+                    if not fallback_found:
+                        # Absolutely no slots available - skip this task
+                        print(f"ERROR: Could not schedule task '{task['title']}' - no free slots in next {extended_days} days!")
+                        print(f"       Task will be skipped. User needs to manually resolve scheduling conflict.")
+                        continue  # Skip to next task
+
+                    # Schedule in the fallback slot
                     full_title = f"{assignment['title']} - {task['title']}"
 
                     scheduled_tasks.append({
                         "task_id": str(task["_id"]),
                         "title": full_title,
-                        "scheduled_start": task_start.isoformat(),
-                        "scheduled_end": task_end.isoformat(),
+                        "scheduled_start": task_start.isoformat() + "Z",  # Add Z to indicate UTC
+                        "scheduled_end": task_end.isoformat() + "Z",  # Add Z to indicate UTC
                         "duration_minutes": duration_minutes,
                         "description": task.get("description", ""),
                         "intensity": intensity,
-                        "warning": "Could not find ideal slot - may conflict with existing events"
+                        "warning": "Scheduled in fallback slot outside preferred times"
                     })
+
+                    # Update database with scheduled times
+                    await self.db.update_task(
+                        str(task["_id"]),
+                        {
+                            "scheduled_start": task_start,
+                            "scheduled_end": task_end
+                        }
+                    )
+                    print(f"DEBUG: Updated database for fallback task {task['title']}: {task_start.strftime('%Y-%m-%d %H:%M')}")
+
+                    # Add to busy intervals
                     add_busy_interval(task_start, task_end)
 
             # Call Next.js API to create Google Calendar events
