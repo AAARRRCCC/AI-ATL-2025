@@ -52,6 +52,24 @@ Workflow When Student Describes an Assignment:
    - Think about logical phases of work (research, planning, execution, review, etc.)
    - Estimate realistic time based on scope, difficulty, and student's familiarity
 4. Create Subtasks: Call create_subtasks with your analyzed breakdown
+   Example format:
+   {
+     "assignment_id": "abc123",
+     "subtasks": [
+       {
+         "title": "Research topic and gather sources",
+         "description": "Find 5-7 academic sources on the topic",
+         "phase": "Research",
+         "estimated_duration": 120
+       },
+       {
+         "title": "Create outline",
+         "description": "Organize main points and structure",
+         "phase": "Planning",
+         "estimated_duration": 45
+       }
+     ]
+   }
 5. Explain: Share your breakdown and reasoning behind time estimates
 6. Schedule (if requested): Check their calendar and schedule tasks using their preferences
 7. Confirm: Verify the plan works for them and offer to make adjustments
@@ -160,62 +178,98 @@ Be helpful, adaptive, and focused on making academic success achievable and sust
                 "parts": [msg["content"]]
             })
 
-        # Start chat session with history
-        chat = self.model.start_chat(history=gemini_history)
+        try:
+            # Start chat session with history
+            chat = self.model.start_chat(history=gemini_history)
 
-        # Send user message
-        response = chat.send_message(user_message)
+            # Send user message
+            response = chat.send_message(user_message)
 
-        function_results = []
+            # Check for malformed function calls
+            if hasattr(response.candidates[0], 'finish_reason'):
+                finish_reason = str(response.candidates[0].finish_reason)
+                if 'MALFORMED_FUNCTION_CALL' in finish_reason:
+                    print(f"ERROR: Malformed function call detected")
+                    print(f"Response: {response}")
+                    return {
+                        "message": "I apologize, but I encountered an error processing your request. Could you please rephrase or provide more details about what you need help with?",
+                        "function_calls": [],
+                        "error": "malformed_function_call"
+                    }
 
-        # Handle function calls in a loop (AI might chain multiple calls)
-        while response.candidates[0].content.parts:
-            has_function_call = False
+            function_results = []
 
+            # Handle function calls in a loop (AI might chain multiple calls)
+            while response.candidates[0].content.parts:
+                has_function_call = False
+
+                for part in response.candidates[0].content.parts:
+                    if fn := part.function_call:
+                        has_function_call = True
+
+                        print(f"Function call: {fn.name}")
+                        print(f"Arguments: {dict(fn.args)}")
+
+                        # Execute the function
+                        result = await self._execute_function(
+                            fn.name,
+                            dict(fn.args),
+                            user_id,
+                            function_executor
+                        )
+
+                        function_results.append({
+                            "name": fn.name,
+                            "input": dict(fn.args),
+                            "result": result
+                        })
+
+                        # Send function response back to model
+                        response = chat.send_message(
+                            {
+                                "role": "function",
+                                "parts": [{
+                                    "function_response": {
+                                        "name": fn.name,
+                                        "response": result
+                                    }
+                                }]
+                            }
+                        )
+
+                if not has_function_call:
+                    break
+
+            # Extract final text response
+            final_message = ""
             for part in response.candidates[0].content.parts:
-                if fn := part.function_call:
-                    has_function_call = True
+                if part.text:
+                    final_message += part.text
 
-                    # Execute the function
-                    result = await self._execute_function(
-                        fn.name,
-                        dict(fn.args),
-                        user_id,
-                        function_executor
-                    )
+            return {
+                "message": final_message,
+                "function_calls": function_results
+            }
 
-                    function_results.append({
-                        "name": fn.name,
-                        "input": dict(fn.args),
-                        "result": result
-                    })
+        except Exception as e:
+            print(f"ERROR in process_message: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
-                    # Send function response back to model
-                    response = chat.send_message(
-                        {
-                            "role": "function",
-                            "parts": [{
-                                "function_response": {
-                                    "name": fn.name,
-                                    "response": result
-                                }
-                            }]
-                        }
-                    )
-
-            if not has_function_call:
-                break
-
-        # Extract final text response
-        final_message = ""
-        for part in response.candidates[0].content.parts:
-            if part.text:
-                final_message += part.text
-
-        return {
-            "message": final_message,
-            "function_calls": function_results
-        }
+            # Check if it's a malformed function call error
+            error_str = str(e)
+            if 'MALFORMED_FUNCTION_CALL' in error_str or 'function_call' in error_str.lower():
+                return {
+                    "message": "I'm having trouble creating a plan for that assignment. Could you tell me more about the type of work involved and how familiar you are with the topic?",
+                    "function_calls": [],
+                    "error": "malformed_function_call"
+                }
+            else:
+                return {
+                    "message": "I encountered an error processing your request. Please try again or rephrase your question.",
+                    "function_calls": [],
+                    "error": str(e)
+                }
 
     async def _execute_function(
         self,

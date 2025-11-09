@@ -68,7 +68,7 @@ AVAILABLE_FUNCTIONS = [
                                 description="Work phase (e.g., 'Research', 'Drafting', 'Review', 'Practice', 'Study')"
                             ),
                             "estimated_duration": glm.Schema(
-                                type=glm.Type.NUMBER,
+                                type=glm.Type.INTEGER,
                                 description="Estimated time in minutes to complete this subtask"
                             )
                         },
@@ -116,7 +116,7 @@ AVAILABLE_FUNCTIONS = [
                     description="New status: 'completed', 'in_progress', 'pending', or 'skipped'"
                 ),
                 "actual_duration": glm.Schema(
-                    type=glm.Type.NUMBER,
+                    type=glm.Type.INTEGER,
                     description="Actual minutes spent on the task (if completed)"
                 )
             },
