@@ -176,6 +176,14 @@ export async function PUT(request: NextRequest) {
         updateFields['studySettings.assignmentDeadlineBuffer'] =
           updates.studySettings.assignmentDeadlineBuffer;
       }
+      if (updates.studySettings.calendarViewStart !== undefined) {
+        updateFields['studySettings.calendarViewStart'] =
+          updates.studySettings.calendarViewStart;
+      }
+      if (updates.studySettings.calendarViewEnd !== undefined) {
+        updateFields['studySettings.calendarViewEnd'] =
+          updates.studySettings.calendarViewEnd;
+      }
     }
 
     if (updates.calendarIntegration) {
