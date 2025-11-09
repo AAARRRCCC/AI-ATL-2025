@@ -46,41 +46,6 @@ export function CalendarSection({ userId, isCalendarConnected, onDataChange, onR
         throw new Error("No authentication token found");
       }
 
-      // First, sync assignments with calendar (delete orphaned assignments)
-      try {
-        console.log("========================================");
-        console.log("STARTING CALENDAR SYNC");
-        console.log("========================================");
-        const syncResponse = await fetch("/api/assignments/sync-with-calendar", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (syncResponse.ok) {
-          const syncData = await syncResponse.json();
-          console.log("✅ SYNC SUCCESS:", syncData.message);
-          console.log("   - Deleted assignments:", syncData.deleted_assignments);
-          console.log("   - Deleted subtasks:", syncData.deleted_subtasks);
-          console.log("   - Updated assignments:", syncData.updated_assignments);
-          console.log("   - Calendar events found:", syncData.calendar_events);
-
-          // Trigger count refresh if anything was deleted or updated
-          if (syncData.deleted_assignments > 0 || syncData.deleted_subtasks > 0 || syncData.updated_assignments > 0) {
-            console.log("🔄 Triggering widget count refresh");
-            onDataChange?.();
-          }
-        } else {
-          const errorText = await syncResponse.text();
-          console.error("❌ SYNC FAILED:", syncResponse.status, errorText);
-        }
-      } catch (syncErr) {
-        console.error("❌ SYNC ERROR:", syncErr);
-        // Continue with calendar fetch even if sync fails
-      }
-      console.log("========================================");
-
       // Fetch events for the next 30 days
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 7); // Include past week
