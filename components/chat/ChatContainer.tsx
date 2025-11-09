@@ -7,6 +7,7 @@ import { ChatAttachment, useWebSocket } from '@/hooks/useWebSocket';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
+import catIcon from "./caticon.png";
 
 interface ChatContainerProps {
   userId: string | null;
@@ -346,7 +347,7 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
         {isInitializing ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4 animate-pulse">
-              <span className="text-3xl">🤖</span>
+              <img src={catIcon.src} alt="cat" className="w-8 h-8 inline-block" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Connecting...
@@ -357,9 +358,9 @@ export function ChatContainer({ userId, onDataChange }: ChatContainerProps) {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
-              <span className="text-3xl">🤖</span>
-            </div>
+            {/* <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4"> */}
+            <img src={catIcon.src} alt="cat" className="w-20 h-20 inline-block" />
+            {/* </div> */}
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Start a conversation!
             </h3>
