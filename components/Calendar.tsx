@@ -123,6 +123,21 @@ export function Calendar({
     [onSelectSlot]
   );
 
+  // Handle drilling down (clicking a date to go to day view) with fade effect
+  const handleDrillDown = useCallback((newDate: Date, newView: View) => {
+    setIsTransitioning(true);
+
+    setTimeout(() => {
+      setDate(newDate);
+      setView(newView);
+
+      // Reset transition state after animation completes
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 100);
+    }, 100);
+  }, []);
+
   const eventStyleGetter = (event: CalendarEvent) => {
     let backgroundColor = "rgba(59, 130, 246, 0.88)"; // Default blue with transparency
     let borderColor = "#3b82f6";
@@ -924,6 +939,7 @@ export function Calendar({
             },
           }}
           onNavigate={setDate}
+          onDrillDown={handleDrillDown}
           onEventDrop={handleEventDrop}
           onEventResize={handleEventResize}
           onSelectEvent={handleSelectEvent}
