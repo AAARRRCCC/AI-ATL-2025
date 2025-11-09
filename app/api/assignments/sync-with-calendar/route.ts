@@ -7,8 +7,10 @@ import { ObjectId } from "mongodb";
 /**
  * POST /api/assignments/sync-with-calendar
  *
- * Syncs assignments with Google Calendar - deletes assignments/tasks
- * that no longer have corresponding calendar events.
+ * Syncs assignments with Google Calendar by cross-checking subtasks.
+ * - Deletes subtasks that no longer have corresponding calendar events
+ * - Updates assignment metadata (total hours, task count)
+ * - Deletes assignments if all subtasks are removed
  * Google Calendar is the source of truth.
  */
 export async function POST(request: NextRequest) {
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const db = await getDatabase();
     const assignmentsCollection = db.collection("assignments");
-    const tasksCollection = db.collection("tasks");
+    const subtasksCollection = db.collection("tasks"); // Subtasks table
 
     // Get date range for calendar events
     const startDate = new Date();
@@ -44,9 +46,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${steadyStudyEvents.length} SteadyStudy events in calendar`);
 
-    // Extract task titles from calendar events
+    // Extract subtask titles from calendar events
     // Calendar events are formatted like: "[SteadyStudy] Task Title - Phase"
-    const calendarTaskTitles = new Set(
+    const calendarSubtaskTitles = new Set(
       steadyStudyEvents.map(event => {
         if (!event.summary) return null;
         // Remove [SteadyStudy] prefix and extract task title
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
       }).filter(Boolean)
     );
 
-    console.log(`Unique task titles in calendar: ${calendarTaskTitles.size}`);
+    console.log(`Unique subtask titles in calendar: ${calendarSubtaskTitles.size}`);
 
     // Fetch all user assignments
     const assignments = await assignmentsCollection
@@ -67,56 +69,80 @@ export async function POST(request: NextRequest) {
     console.log(`Found ${assignments.length} assignments in database`);
 
     let deletedAssignments = 0;
-    let deletedTasks = 0;
+    let deletedSubtasks = 0;
+    let updatedAssignments = 0;
 
     // Process each assignment
     for (const assignment of assignments) {
-      // Get all tasks for this assignment
-      const tasks = await tasksCollection
+      // Get all subtasks for this assignment
+      const subtasks = await subtasksCollection
         .find({ assignmentId: new ObjectId(assignment._id) })
         .toArray();
 
-      console.log(`Assignment "${assignment.title}" has ${tasks.length} tasks`);
+      console.log(`Assignment "${assignment.title}" has ${subtasks.length} subtasks`);
 
-      // Check which tasks still exist in calendar
-      const tasksToDelete = [];
-      const tasksToKeep = [];
+      // Check which subtasks still exist in calendar
+      const subtasksToDelete = [];
+      const subtasksToKeep = [];
 
-      for (const task of tasks) {
-        const taskTitle = task.title;
-        if (calendarTaskTitles.has(taskTitle)) {
-          tasksToKeep.push(task);
+      for (const subtask of subtasks) {
+        const subtaskTitle = subtask.title;
+        if (calendarSubtaskTitles.has(subtaskTitle)) {
+          subtasksToKeep.push(subtask);
         } else {
-          tasksToDelete.push(task);
+          subtasksToDelete.push(subtask);
         }
       }
 
-      console.log(`  - Tasks to keep: ${tasksToKeep.length}`);
-      console.log(`  - Tasks to delete: ${tasksToDelete.length}`);
+      console.log(`  - Subtasks to keep: ${subtasksToKeep.length}`);
+      console.log(`  - Subtasks to delete: ${subtasksToDelete.length}`);
 
-      // Delete tasks that are not in calendar
-      if (tasksToDelete.length > 0) {
-        const taskIds = tasksToDelete.map(t => t._id);
-        const result = await tasksCollection.deleteMany({
-          _id: { $in: taskIds }
+      // Delete subtasks that are not in calendar
+      if (subtasksToDelete.length > 0) {
+        const subtaskIds = subtasksToDelete.map(t => t._id);
+        const result = await subtasksCollection.deleteMany({
+          _id: { $in: subtaskIds }
         });
-        deletedTasks += result.deletedCount;
-        console.log(`  - Deleted ${result.deletedCount} tasks`);
+        deletedSubtasks += result.deletedCount;
+        console.log(`  - Deleted ${result.deletedCount} orphaned subtasks`);
       }
 
-      // If no tasks remain, delete the assignment
-      if (tasksToKeep.length === 0) {
+      // If no subtasks remain, delete the assignment
+      if (subtasksToKeep.length === 0) {
         await assignmentsCollection.deleteOne({ _id: assignment._id });
         deletedAssignments++;
-        console.log(`  - Deleted assignment "${assignment.title}" (no tasks remaining)`);
+        console.log(`  - Deleted assignment "${assignment.title}" (no subtasks remaining)`);
+      }
+      // If some subtasks were deleted but some remain, update assignment metadata
+      else if (subtasksToDelete.length > 0) {
+        // Recalculate total estimated hours from remaining subtasks
+        const totalEstimatedMinutes = subtasksToKeep.reduce(
+          (sum, subtask) => sum + (subtask.estimated_duration || 0),
+          0
+        );
+        const totalEstimatedHours = totalEstimatedMinutes / 60;
+
+        // Update assignment with new totals
+        await assignmentsCollection.updateOne(
+          { _id: assignment._id },
+          {
+            $set: {
+              total_estimated_hours: totalEstimatedHours,
+              updatedAt: new Date()
+            }
+          }
+        );
+        updatedAssignments++;
+        console.log(`  - Updated assignment "${assignment.title}": ${totalEstimatedHours.toFixed(1)} hours (${subtasksToKeep.length} subtasks remaining)`);
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Sync completed: deleted ${deletedAssignments} assignments and ${deletedTasks} orphaned tasks`,
+      message: `Sync completed: deleted ${deletedAssignments} assignments, ${deletedSubtasks} orphaned subtasks, updated ${updatedAssignments} assignments`,
       deleted_assignments: deletedAssignments,
-      deleted_tasks: deletedTasks,
+      deleted_subtasks: deletedSubtasks,
+      updated_assignments: updatedAssignments,
       calendar_events: steadyStudyEvents.length
     });
 
