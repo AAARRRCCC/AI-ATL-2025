@@ -21,78 +21,150 @@ class ChatHandler:
     """
 
     SYSTEM_INSTRUCTION = """
-You are SteadyStudy, an AI assistant that helps college students manage their
-assignments and study schedules. You have access to their Google Calendar and can
-directly create, schedule, and manage their study tasks.
+You are SteadyStudy, an AI study assistant that helps students manage their academic workload
+effectively. You have access to their Google Calendar and can create, schedule, and organize
+study tasks based on their unique needs and circumstances.
 
-IMPORTANT: Today's date is {current_date}. When users mention dates without a year
-(like "November 10-14"), assume they mean the current or upcoming year based on today's date.
-Always use the correct year in date calculations.
+IMPORTANT: Today's date is {current_date}. When users mention dates without specifying a year,
+infer the correct year based on context and today's date.
 
-Your personality:
-- Encouraging but realistic - don't overpromise or underestimate workload
-- Break down complex assignments into concrete, manageable steps
-- Consider the student's existing calendar commitments and preferences
-- Be conversational and friendly, not robotic
-- Ask clarifying questions when needed (topic familiarity, specific requirements, etc.)
+THINKING MODE:
+You have access to thinking mode - use it extensively for:
+- Analyzing assignment requirements and complexity
+- Breaking down assignments into logical subtasks
+- Estimating realistic time requirements for each step
+- Evaluating student's familiarity and difficulty level
+- Planning optimal task sequences
+- Considering calendar constraints and scheduling options
+- Reasoning through time management strategies
 
-Available functions you can call:
-1. create_assignment - Create a new assignment with title, description, due date
-2. break_down_assignment - Analyze assignment and create subtasks with time estimates
-3. schedule_tasks - Find free time in calendar and schedule tasks
-4. get_calendar_events - Fetch their Google Calendar to see availability
-5. update_task_status - Mark tasks as complete, in progress, skipped
+ALWAYS think through these decisions before making function calls. Your thinking process helps
+you make better recommendations that truly fit the student's needs.
+
+Core Principles:
+- Be encouraging yet realistic about time and effort required
+- Adapt your approach to each student's unique situation and assignment type
+- Ask clarifying questions to understand requirements, familiarity with the topic, and constraints
+- Maintain a conversational, supportive tone while staying focused on academic productivity
+- Explain your reasoning and recommendations clearly
+
+Available Functions:
+1. create_assignment - Create a new assignment with title, description, due date, difficulty, subject
+2. create_subtasks - Define custom subtasks with titles, descriptions, phases, and time estimates
+3. schedule_tasks - Find free time and create calendar events (respects user preferences automatically)
+4. get_calendar_events - View their calendar to check availability and existing commitments
+5. update_task_status - Mark tasks as completed, in progress, pending, or skipped
 6. reschedule_task - Move a task to a different time slot
-7. get_user_assignments - List all assignments with status
+7. get_user_assignments - Retrieve all assignments with status and details
 
-When a student tells you about an assignment:
-1. Ask clarifying questions if needed (topic familiarity, specific requirements)
-2. Call create_assignment with the details
-3. Call break_down_assignment to create phases and subtasks
-4. Explain the breakdown and time estimates
-5. Ask if they want you to schedule it
-6. If yes, call get_calendar_events to check availability
-7. Call schedule_tasks to create calendar events (this automatically uses their preferences)
-8. Confirm what you've scheduled and ask if they want adjustments
+Workflow When Student Describes an Assignment:
+1. Gather Information: Ask about scope, requirements, familiarity with topic, and any special considerations
 
-Time estimation guidelines:
-- Research paper (10 pages): 10-15 hours total
-  - Research phase: ~30-40% of total time
-  - Drafting phase: ~40-50% of total time
-  - Revision phase: ~15-20% of total time
-- Problem sets: 1-3 hours depending on complexity
-- Reading assignments: ~20 pages/hour for academic text
-- Always add 25% buffer time for realistic planning
+2. Create Assignment: Call create_assignment ONCE with complete details including difficulty level
 
-IMPORTANT - User Preferences:
-The schedule_tasks function automatically respects the user's preferences:
-- Available days: Only schedules on days they've selected as available
-- Time blocks: Schedules within their preferred study time windows
-- Productivity pattern: Prioritizes morning/midday/evening based on their preference
-- Deadline buffer: Ensures work is scheduled to complete X days before the deadline
-- Subject strengths: Automatically adds 25% more time for subjects marked as "needs more time"
+3. THINK & Analyze: Use your thinking mode to deeply analyze the assignment
+   Think through:
+   - What type of work is this really? (Don't just pattern-match to templates)
+   - What are the actual phases needed for THIS specific assignment?
+   - How does the student's familiarity level affect the approach?
+   - What's a realistic time estimate for each phase given the scope?
+   - Are there any unique challenges or requirements to account for?
+   - What's the most logical sequence of work?
 
-When explaining the schedule to the user, mention that you're following their preferences:
-- "I've scheduled this during your preferred [morning/midday/evening] hours"
-- "I'm making sure to finish 2 days before the deadline as you prefer"
-- "Since you marked Math as needing more time, I've added extra time for this assignment"
+4. Create Subtasks: After thorough thinking, call create_subtasks ONCE with your analyzed breakdown
+   IMPORTANT: Only call create_subtasks ONE TIME per assignment. Do not create subtasks multiple times.
+   Example format:
+   {{
+     "assignment_id": "abc123",
+     "subtasks": [
+       {{
+         "title": "Research topic and gather sources",
+         "description": "Find 5-7 academic sources on the topic",
+         "phase": "Research",
+         "estimated_duration": 120
+       }},
+       {{
+         "title": "Create outline",
+         "description": "Organize main points and structure",
+         "phase": "Planning",
+         "estimated_duration": 45
+       }}
+     ]
+   }}
+5. Explain: Share your breakdown and reasoning behind time estimates
+6. Schedule (if requested): Check their calendar and schedule tasks using their preferences
+7. Confirm: Verify the plan works for them and offer to make adjustments
 
-Scheduling best practices:
-- Prefer 90-120 minute blocks for deep work (research, drafting)
-- 45-60 minute blocks for lighter tasks (editing, formatting)
-- Avoid scheduling right after 3+ hour class blocks
-- Leave breathing room between sessions
+Time Estimation Approach - USE THINKING MODE:
+THINK through time estimates carefully - don't use fixed formulas or patterns.
 
-IMPORTANT - Calendar Sync Behavior:
-Google Calendar is the source of truth for assignments. The system automatically syncs:
-- If a user deletes a SteadyStudy event from their Google Calendar, the corresponding
-  assignment/task will be automatically removed from the database
-- This happens automatically when the calendar refreshes
-- If all tasks for an assignment are deleted from the calendar, the entire assignment is removed
-- Users can manage their schedule by editing/deleting calendar events directly
+For each subtask, think through:
+1. What exactly needs to be done in this step?
+2. How long would this realistically take for THIS student?
+   - Account for their difficulty level (easy/medium/hard)
+   - Consider if they're familiar with the topic or learning from scratch
+3. What could slow them down? (complex material, need for breaks, distractions)
+4. Should I add buffer time? (usually 20-30% is reasonable)
 
-Always explain what you're doing and ask for confirmation before making major changes.
-Be supportive and help reduce procrastination through momentum, not punishment.
+Think through concrete examples:
+- Reading 50 pages of dense philosophy: Think about comprehension speed, note-taking, re-reading
+- Writing a 5-page essay: Think about research time, drafting speed, revision rounds
+- Solving 20 calculus problems: Think about problem difficulty, getting stuck, checking work
+- Creating a presentation: Think about research, slide design, practice time
+
+Different students work at different paces - use the difficulty level and your reasoning to
+estimate realistically for THIS specific student and assignment.
+
+Subtask Phases:
+Choose appropriate phase labels that fit the work:
+- Research: Finding sources, gathering information, background reading
+- Planning: Outlining, organizing thoughts, creating structures
+- Drafting: Initial creation of written work
+- Execution: Solving problems, building components, primary work
+- Practice: Rehearsing, doing practice problems, skill development
+- Review: Editing, checking work, refining quality
+- Study: Memorization, concept review, exam preparation
+- Revision: Incorporating feedback, polishing final product
+
+User Preferences Integration:
+The schedule_tasks function automatically respects their settings:
+- Only schedules on their available days
+- Uses their preferred study time windows
+- Prioritizes times matching their productivity pattern
+- Finishes work before deadline based on their buffer preference
+- Adds extra time for subjects they find challenging
+
+When explaining schedules, acknowledge their preferences naturally:
+- "I've arranged this during your morning hours since that's when you study best"
+- "I made sure to finish 3 days before the due date"
+- "I added some extra time for the math components"
+
+Calendar Sync Behavior:
+Google Calendar is the source of truth. The system automatically syncs with their calendar:
+- Deleting a SteadyStudy event from Google Calendar removes it from the database
+- Editing event times in Google Calendar keeps tasks in sync
+- If all subtasks are deleted, the assignment is automatically removed
+- This gives students full control through their calendar app
+
+Scheduling - USE THINKING MODE:
+Before calling schedule_tasks, THINK through:
+- When should each subtask happen based on dependencies and deadlines?
+- Are there subtasks that need to be done in sequence vs parallel?
+- How does this fit with their other commitments and preferences?
+- Would spreading the work out be better, or doing it in focused sessions?
+- What's a realistic completion timeline given their schedule?
+
+Best Practices:
+- Suggest appropriate session lengths based on task type (deep work vs quick tasks)
+- Consider cognitive load (don't schedule intense work back-to-back)
+- Respect their existing commitments visible in the calendar
+- Offer alternatives if initial schedule doesn't fit their needs
+- Celebrate progress and completed tasks
+
+REMEMBER: Use thinking mode extensively. Your thoughtful analysis leads to better plans
+that actually work for students. Don't rush - think through each decision carefully.
+
+Be helpful, adaptive, and focused on making academic success achievable and sustainable.
 """
 
     def __init__(self, gemini_api_key: str):
@@ -108,9 +180,9 @@ Be supportive and help reduce procrastination through momentum, not punishment.
         current_date = datetime.now().strftime("%B %d, %Y")  # e.g., "November 08, 2025"
         system_instruction = self.SYSTEM_INSTRUCTION.format(current_date=current_date)
 
-        # Initialize Gemini model with function calling
+        # Initialize Gemini model with function calling and thinking enabled
         self.model = genai.GenerativeModel(
-            model_name='gemini-flash-latest',  # Auto-updates to latest flash model
+            model_name='gemini-2.0-flash-thinking-exp',  # Model with thinking support
             tools=tools,
             system_instruction=system_instruction
         )
@@ -142,62 +214,167 @@ Be supportive and help reduce procrastination through momentum, not punishment.
                 "parts": [msg["content"]]
             })
 
-        # Start chat session with history
-        chat = self.model.start_chat(history=gemini_history)
+        try:
+            # Start chat session with history
+            chat = self.model.start_chat(history=gemini_history)
 
-        # Send user message
-        response = chat.send_message(user_message)
+            # Send user message
+            response = chat.send_message(user_message)
 
-        function_results = []
+            # Check for malformed function calls
+            if hasattr(response.candidates[0], 'finish_reason'):
+                finish_reason = str(response.candidates[0].finish_reason)
+                if 'MALFORMED_FUNCTION_CALL' in finish_reason:
+                    print(f"ERROR: Malformed function call detected")
+                    print(f"Response: {response}")
+                    return {
+                        "message": "I apologize, but I encountered an error processing your request. Could you please rephrase or provide more details about what you need help with?",
+                        "function_calls": [],
+                        "error": "malformed_function_call"
+                    }
 
-        # Handle function calls in a loop (AI might chain multiple calls)
-        while response.candidates[0].content.parts:
-            has_function_call = False
+            function_results = []
 
-            for part in response.candidates[0].content.parts:
-                if fn := part.function_call:
-                    has_function_call = True
+            # Track created items to prevent duplicates in this conversation turn
+            created_assignments = {}  # title -> assignment_id
+            created_subtasks_for = set()  # set of assignment_ids that already have subtasks
 
-                    # Execute the function
-                    result = await self._execute_function(
-                        fn.name,
-                        dict(fn.args),
-                        user_id,
-                        function_executor
-                    )
+            # Handle function calls in a loop (AI might chain multiple calls)
+            while response.candidates[0].content.parts:
+                has_function_call = False
 
-                    function_results.append({
-                        "name": fn.name,
-                        "input": dict(fn.args),
-                        "result": result
-                    })
+                for part in response.candidates[0].content.parts:
+                    if fn := part.function_call:
+                        has_function_call = True
 
-                    # Send function response back to model
-                    response = chat.send_message(
-                        {
-                            "role": "function",
-                            "parts": [{
-                                "function_response": {
-                                    "name": fn.name,
-                                    "response": result
+                        # Convert proto args to regular dict properly
+                        def proto_to_dict(obj):
+                            """Recursively convert proto objects to plain Python dicts"""
+                            if isinstance(obj, (str, int, float, bool, type(None))):
+                                return obj
+                            elif isinstance(obj, dict):
+                                return {k: proto_to_dict(v) for k, v in obj.items()}
+                            elif isinstance(obj, (list, tuple)):
+                                return [proto_to_dict(item) for item in obj]
+                            elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
+                                # Handle proto repeated/map objects
+                                if hasattr(obj, 'items'):
+                                    return {k: proto_to_dict(v) for k, v in obj.items()}
+                                else:
+                                    return [proto_to_dict(item) for item in obj]
+                            else:
+                                # Try to convert to dict if it has dict-like interface
+                                try:
+                                    return dict(obj)
+                                except (TypeError, ValueError):
+                                    return str(obj)
+
+                        args_dict = proto_to_dict(dict(fn.args))
+
+                        print(f"\nFunction call: {fn.name}")
+                        print(f"Arguments: {args_dict}")
+
+                        # Check for duplicates before executing
+                        skip_execution = False
+
+                        if fn.name == "create_assignment":
+                            title = args_dict.get("title", "")
+                            if title in created_assignments:
+                                print(f"⚠️  DUPLICATE DETECTED: Assignment '{title}' already created. Skipping.")
+                                result = {
+                                    "success": True,
+                                    "assignment_id": created_assignments[title],
+                                    "message": f"Assignment '{title}' already exists (preventing duplicate)",
+                                    "duplicate_prevented": True
                                 }
-                            }]
-                        }
-                    )
+                                skip_execution = True
 
-            if not has_function_call:
-                break
+                        elif fn.name == "create_subtasks":
+                            assignment_id = args_dict.get("assignment_id", "")
+                            if assignment_id in created_subtasks_for:
+                                print(f"⚠️  DUPLICATE DETECTED: Subtasks for assignment {assignment_id} already created. Skipping.")
+                                result = {
+                                    "success": True,
+                                    "message": f"Subtasks for assignment {assignment_id} already exist (preventing duplicate)",
+                                    "duplicate_prevented": True
+                                }
+                                skip_execution = True
 
-        # Extract final text response
-        final_message = ""
-        for part in response.candidates[0].content.parts:
-            if part.text:
-                final_message += part.text
+                        # Execute the function if not a duplicate
+                        if not skip_execution:
+                            result = await self._execute_function(
+                                fn.name,
+                                args_dict,
+                                user_id,
+                                function_executor
+                            )
 
-        return {
-            "message": final_message,
-            "function_calls": function_results
-        }
+                            # Track created items
+                            if fn.name == "create_assignment" and result.get("success"):
+                                title = args_dict.get("title", "")
+                                assignment_id = result.get("assignment_id")
+                                if title and assignment_id:
+                                    created_assignments[title] = assignment_id
+                                    print(f"✅ Tracked new assignment: '{title}' -> {assignment_id}")
+
+                            elif fn.name == "create_subtasks" and result.get("success"):
+                                assignment_id = args_dict.get("assignment_id")
+                                if assignment_id:
+                                    created_subtasks_for.add(assignment_id)
+                                    print(f"✅ Tracked subtasks created for assignment: {assignment_id}")
+
+                        function_results.append({
+                            "name": fn.name,
+                            "input": args_dict,
+                            "result": result
+                        })
+
+                        # Send function response back to model
+                        response = chat.send_message(
+                            {
+                                "role": "function",
+                                "parts": [{
+                                    "function_response": {
+                                        "name": fn.name,
+                                        "response": result
+                                    }
+                                }]
+                            }
+                        )
+
+                if not has_function_call:
+                    break
+
+            # Extract final text response
+            final_message = ""
+            for part in response.candidates[0].content.parts:
+                if part.text:
+                    final_message += part.text
+
+            return {
+                "message": final_message,
+                "function_calls": function_results
+            }
+
+        except Exception as e:
+            print(f"ERROR in process_message: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+            # Check if it's a malformed function call error
+            error_str = str(e)
+            if 'MALFORMED_FUNCTION_CALL' in error_str or 'function_call' in error_str.lower():
+                return {
+                    "message": "I'm having trouble creating a plan for that assignment. Could you tell me more about the type of work involved and how familiar you are with the topic?",
+                    "function_calls": [],
+                    "error": "malformed_function_call"
+                }
+            else:
+                return {
+                    "message": "I encountered an error processing your request. Please try again or rephrase your question.",
+                    "function_calls": [],
+                    "error": str(e)
+                }
 
     async def _execute_function(
         self,
@@ -222,10 +399,10 @@ Be supportive and help reduce procrastination through momentum, not punishment.
             if name == "create_assignment":
                 return await function_executor.create_assignment(user_id, args)
 
-            elif name == "break_down_assignment":
-                return await function_executor.break_down_assignment(
+            elif name == "create_subtasks":
+                return await function_executor.create_subtasks(
                     args["assignment_id"],
-                    args.get("user_context")
+                    args["subtasks"]
                 )
 
             elif name == "schedule_tasks":
