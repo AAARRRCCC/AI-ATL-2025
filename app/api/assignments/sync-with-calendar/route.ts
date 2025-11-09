@@ -66,11 +66,12 @@ export async function POST(request: NextRequest) {
     console.log("Calendar subtask titles:", Array.from(calendarSubtaskTitles));
 
     // Fetch all user assignments
+    // NOTE: Python backend stores user_id as string, not ObjectId
     const assignments = await assignmentsCollection
-      .find({ userId: new ObjectId(payload.userId) })
+      .find({ user_id: payload.userId })
       .toArray();
 
-    console.log(`Found ${assignments.length} assignments in database`);
+    console.log(`Found ${assignments.length} assignments in database for user ${payload.userId}`);
 
     let deletedAssignments = 0;
     let deletedSubtasks = 0;
@@ -79,11 +80,12 @@ export async function POST(request: NextRequest) {
     // Process each assignment
     for (const assignment of assignments) {
       // Get all subtasks for this assignment
+      // NOTE: Python backend stores assignment_id as string, not ObjectId
       const subtasks = await subtasksCollection
-        .find({ assignmentId: new ObjectId(assignment._id) })
+        .find({ assignment_id: assignment._id.toString() })
         .toArray();
 
-      console.log(`Assignment "${assignment.title}" has ${subtasks.length} subtasks`);
+      console.log(`Assignment "${assignment.title}" (ID: ${assignment._id}) has ${subtasks.length} subtasks`);
 
       // Check which subtasks still exist in calendar
       const subtasksToDelete = [];
