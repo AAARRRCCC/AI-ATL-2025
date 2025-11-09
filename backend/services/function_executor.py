@@ -73,23 +73,20 @@ class FunctionExecutor:
                 "error": str(e)
             }
 
-    async def break_down_assignment(
+    async def create_subtasks(
         self,
         assignment_id: str,
-        user_context: Optional[Dict[str, Any]] = None
+        subtasks: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Break down an assignment into subtasks.
-
-        This is a simplified version. In production, you might use another
-        AI call or more sophisticated logic.
+        Create custom subtasks for an assignment as specified by the AI.
 
         Args:
             assignment_id: Assignment ID
-            user_context: Optional user preferences
+            subtasks: List of subtask definitions from the AI
 
         Returns:
-            Dict with subtasks and total estimated hours
+            Dict with created subtasks and total estimated hours
         """
         try:
             assignment = await self.db.get_assignment(assignment_id)
@@ -97,122 +94,31 @@ class FunctionExecutor:
             if not assignment:
                 return {"success": False, "error": "Assignment not found"}
 
-            # Simple heuristic-based breakdown
-            # In production, this could be another Gemini API call
-            title = assignment["title"].lower()
-            difficulty = assignment.get("difficulty_level", "medium")
-
-            # Difficulty multipliers
-            multipliers = {"easy": 0.7, "medium": 1.0, "hard": 1.5}
-            mult = multipliers.get(difficulty, 1.0)
-
-            # Estimate total hours based on assignment type
-            total_hours = 10 * mult  # Default
-
-            if "paper" in title or "essay" in title or "report" in title:
-                # Research paper breakdown
-                subtasks = [
-                    {
-                        "title": "Research and collect sources",
-                        "description": "Find and read credible sources for the paper",
-                        "phase": "Research",
-                        "estimated_duration": int(180 * mult),  # 3 hours in minutes
-                        "order_index": 0
-                    },
-                    {
-                        "title": "Create outline and thesis",
-                        "description": "Develop paper structure and main argument",
-                        "phase": "Research",
-                        "estimated_duration": int(60 * mult),  # 1 hour
-                        "order_index": 1
-                    },
-                    {
-                        "title": "Write first draft",
-                        "description": "Complete first full draft of the paper",
-                        "phase": "Drafting",
-                        "estimated_duration": int(240 * mult),  # 4 hours
-                        "order_index": 2
-                    },
-                    {
-                        "title": "Revise and edit",
-                        "description": "Review, edit, and polish the paper",
-                        "phase": "Revision",
-                        "estimated_duration": int(120 * mult),  # 2 hours
-                        "order_index": 3
-                    },
-                    {
-                        "title": "Final formatting and citations",
-                        "description": "Format paper and check all citations",
-                        "phase": "Revision",
-                        "estimated_duration": int(60 * mult),  # 1 hour
-                        "order_index": 4
-                    }
-                ]
-                total_hours = sum(t["estimated_duration"] for t in subtasks) / 60
-
-            elif "problem" in title or "homework" in title or "pset" in title:
-                # Problem set breakdown
-                subtasks = [
-                    {
-                        "title": "Review relevant concepts",
-                        "description": "Review course materials and notes",
-                        "phase": "Preparation",
-                        "estimated_duration": int(45 * mult),
-                        "order_index": 0
-                    },
-                    {
-                        "title": "Solve problems",
-                        "description": "Work through all problem set questions",
-                        "phase": "Execution",
-                        "estimated_duration": int(120 * mult),  # 2 hours
-                        "order_index": 1
-                    },
-                    {
-                        "title": "Review and check work",
-                        "description": "Double-check solutions and formatting",
-                        "phase": "Review",
-                        "estimated_duration": int(45 * mult),
-                        "order_index": 2
-                    }
-                ]
-                total_hours = sum(t["estimated_duration"] for t in subtasks) / 60
-
-            else:
-                # Generic breakdown
-                subtasks = [
-                    {
-                        "title": "Understand requirements",
-                        "description": "Review assignment instructions thoroughly",
-                        "phase": "Planning",
-                        "estimated_duration": int(30 * mult),
-                        "order_index": 0
-                    },
-                    {
-                        "title": "Complete main work",
-                        "description": "Work on the assignment",
-                        "phase": "Execution",
-                        "estimated_duration": int(180 * mult),  # 3 hours
-                        "order_index": 1
-                    },
-                    {
-                        "title": "Review and finalize",
-                        "description": "Final review and submission prep",
-                        "phase": "Review",
-                        "estimated_duration": int(60 * mult),
-                        "order_index": 2
-                    }
-                ]
-                total_hours = sum(t["estimated_duration"] for t in subtasks) / 60
-
-            # Create subtasks in database
+            # Create subtasks in database with order_index
             task_ids = []
-            for subtask in subtasks:
+            total_minutes = 0
+
+            for index, subtask in enumerate(subtasks):
+                # Add order_index to maintain sequence
+                subtask_data = {
+                    "title": subtask["title"],
+                    "description": subtask.get("description", ""),
+                    "phase": subtask.get("phase", "Work"),
+                    "estimated_duration": subtask.get("estimated_duration", 60),
+                    "order_index": index
+                }
+
+                total_minutes += subtask_data["estimated_duration"]
+
                 task_id = await self.db.create_task(
                     self.user_id,
                     assignment_id,
-                    subtask
+                    subtask_data
                 )
                 task_ids.append(task_id)
+
+            # Calculate total hours
+            total_hours = total_minutes / 60
 
             # Update assignment with total hours
             await self.db.update_assignment(
@@ -222,7 +128,7 @@ class FunctionExecutor:
 
             return {
                 "success": True,
-                "subtasks": subtasks,
+                "subtasks_created": len(subtasks),
                 "total_hours": total_hours,
                 "task_ids": task_ids,
                 "message": f"Created {len(subtasks)} subtasks totaling {total_hours:.1f} hours"
